@@ -9,10 +9,10 @@ class TypeStateProcessorTest: StringSpec({
         val source = JavaFileObjects.forSourceString(
             "TestClass",
             """
-                @Typestate(protocol = "myprotocol")
+                @Typestate("myprotocol")
                 class TestClass {
-                    void m1(@Requires(t = "T1") TestClass x) {}
-                    @Ensures(t = "T2") void m2() {}
+                    void m1(@Requires({"T1", "T2"}) TestClass x) {}
+                    @Ensures({"T2"}) void m2() {}
                 } 
             """.trimIndent()
         )

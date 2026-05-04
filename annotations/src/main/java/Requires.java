@@ -6,5 +6,5 @@ import java.lang.annotation.Target;
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Requires {
-    String t();
+    String[] value();
 }
