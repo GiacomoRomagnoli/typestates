@@ -28,7 +28,6 @@ data class TransitionNode(
 
 data class MethodNode(
     override val position: Position,
-    val ret: TypeNode,
     val name: IdNode,
     val args: List<TypeNode>
 ) : TNode(position)

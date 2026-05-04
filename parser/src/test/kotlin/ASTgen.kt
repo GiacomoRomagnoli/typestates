@@ -15,7 +15,12 @@ import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 
 fun main() {
-    val input = "typestate A { S = { void m() : end } }"
+    val input = """
+        typestate A { 
+            S = { init() : N, init2() : N }
+            N = { m(int) : end }
+        }
+    """.trimIndent()
 
     val parser = TypestateParser(
         CommonTokenStream(
@@ -55,7 +60,7 @@ fun TNode.prettyPrint(indent: String = ""): String {
 
         is MethodNode ->
             buildString {
-                append("${indent}Method ${ret.prettyPrint()} ${name.value}(")
+                append("${indent}Method ${name.value}(")
                 append(args.joinToString(", ") { it.prettyPrint() })
                 append(")")
             }

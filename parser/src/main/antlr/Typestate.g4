@@ -48,11 +48,10 @@ target returns [TargetNode node]:
 ;
 
 method returns [MethodNode node]:
-    ret=type name=ID '(' (args+=type (',' args+=type)*)? ')'
+    name=ID '(' (args+=type (',' args+=type)*)? ')'
     {
         $node = new MethodNode(
             fromToken($name),
-            $ret.node,
             new IdNode(fromToken($name), $name.getText()),
             map($args, a -> a.node)
         );
