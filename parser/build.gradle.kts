@@ -13,9 +13,15 @@ repositories {
 dependencies {
     antlr(libs.antlr)
     implementation(libs.antlr.runtime)
+    testImplementation(libs.kotest.runner.junit5)
+    testImplementation(libs.kotest.assertions.core)
 }
 
 tasks.compileKotlin {
     dependsOn(tasks.generateGrammarSource)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
