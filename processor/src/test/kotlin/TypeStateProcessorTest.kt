@@ -10,9 +10,11 @@ class TypeStateProcessorTest: StringSpec({
             "TestClass",
             """
                 @Typestate("myprotocol")
-                class TestClass {
+                class TestClass extends SuperTestClass {
                     void m1(@Requires({"T1", "T2"}) TestClass x) {}
                     @Ensures({"T2"}) void m2() {}
+                    @Override
+                     public boolean equals(Object o) { return false; }
                 } 
             """.trimIndent()
         )

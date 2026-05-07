@@ -1,3 +1,4 @@
+import dsl.TypeStateCheckerScope.Companion.TypeCheck
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
@@ -12,9 +13,15 @@ class TypeStateProcessor: AbstractProcessor() {
     )
 
     override fun process(annotations: Set<TypeElement?>?, roundEnv: RoundEnvironment?): Boolean {
-        roundEnv?.getElementsAnnotatedWith(Typestate::class.java)?.forEach {
+        roundEnv?.getElementsAnnotatedWith(Typestate::class.java)?.map { it as TypeElement }?.forEach {
             processingEnv.messager.printMessage(Diagnostic.Kind.NOTE, "${it.simpleName} (${it.kind})")
             processingEnv.messager.printMessage(Diagnostic.Kind.NOTE, "${it.getAnnotation(Typestate::class.java)}")
+            TypeCheck(processingEnv) {
+                processingEnv.messager.printMessage(
+                    Diagnostic.Kind.NOTE,
+                    it.allMethods().joinToString { it.simpleName }
+                )
+            }
         }
         roundEnv?.getElementsAnnotatedWith(Requires::class.java)?.forEach {
             processingEnv.messager.printMessage(Diagnostic.Kind.NOTE, "${it.simpleName} (${it.kind})")
