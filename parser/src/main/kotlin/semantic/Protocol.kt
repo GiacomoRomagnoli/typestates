@@ -5,7 +5,10 @@ import TypestateParser
 import ast.BranchNode
 import ast.DecisionTargetNode
 import ast.EndStateNode
+import ast.IdNode
+import ast.StateNode
 import ast.StateRefNode
+import ast.StateTargetNode
 import ast.TypeStateNode
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
@@ -27,8 +30,10 @@ object Protocol {
             when (it) {
                 is EndStateNode -> listOf()
                 is StateRefNode -> listOf(it.name)
-                is DecisionTargetNode ->
-                    it.branches.map { branch -> branch.target }.filterIsInstance<StateRefNode>().map { it.name }
+                is DecisionTargetNode -> it.branches
+                    .map { branch -> branch.target }
+                    .filterIsInstance<StateRefNode>()
+                    .map { ref -> ref.name }
             }
         }
         for (ref in refs) {
@@ -37,5 +42,42 @@ object Protocol {
             }
         }
         return this
+    }
+
+    // end state represented by a StateNode with no transitions
+    fun TypeStateNode.resolve(ref: StateTargetNode): StateNode? =
+        when (ref) {
+            is EndStateNode -> StateNode(
+                ref.position,
+                IdNode(ref.position, "end"),
+                emptyList(),
+                false
+            )
+            is StateRefNode -> states.find { it.name.value == ref.name.value }
+        }
+
+    fun TypeStateNode.next(state: StateNode): Set<StateNode> =
+        state.transitions
+            .map { it.target }
+            .flatMap {
+                when (it) {
+                    is StateTargetNode -> listOf(it)
+                    is DecisionTargetNode -> it.branches.map { branch -> branch.target }
+                }
+            }
+            .mapNotNull { resolve(it) }
+            .toSet()
+
+
+    fun TypeStateNode.protIn(): Set<StateNode> {
+        fun reach(reachable: Set<StateNode>, reached: Set<StateNode>): Set<StateNode> {
+            val discovered = reachable.flatMap { next(it) }.toSet()
+            return if (discovered.isEmpty()) {
+                reached
+            } else {
+                reach(discovered - reached, reached + reachable)
+            }
+        }
+        return reach(setOf(states.first()), setOf())
     }
 }
