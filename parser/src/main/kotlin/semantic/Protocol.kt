@@ -2,7 +2,6 @@ package semantic
 
 import TypestateLexer
 import TypestateParser
-import ast.BranchNode
 import ast.DecisionTargetNode
 import ast.EndStateNode
 import ast.IdNode
