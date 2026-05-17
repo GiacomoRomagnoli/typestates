@@ -11,6 +11,7 @@ import ast.StateTargetNode
 import ast.TypeStateNode
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
+import kotlin.collections.flatMap
 
 object Protocol {
     fun parse(input: String): TypeStateNode =
@@ -79,4 +80,6 @@ object Protocol {
         }
         return reach(setOf(states.first()), setOf())
     }
+
+    fun DecisionTargetNode.labels(): Set<String> = branches.map { it.label.value }.toSet()
 }

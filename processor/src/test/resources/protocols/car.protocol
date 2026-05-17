@@ -1,0 +1,8 @@
+typestate CAR {
+    OFF = {
+        start() : <true: ON, false: OFF>
+    }
+    ON = {
+        stop() : end
+    }
+}

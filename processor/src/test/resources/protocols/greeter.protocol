@@ -1,0 +1,8 @@
+typestate GREETER {
+    HELLO = {
+        sayHello() : GOODBYE
+    }
+    GOODBYE = {
+        sayGoodbye() : end
+    }
+}
