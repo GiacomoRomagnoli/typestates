@@ -7,10 +7,10 @@ grammar Typestate;
     import static ast.Position.fromTokens;
 }
 
-typestate returns [TypeStateNode node]:
+typestate returns [ProtocolNode node]:
     t=TYPESTATE name=ID '{' sts+=state* '}' EOF
     {
-        $node = new TypeStateNode(
+        $node = new ProtocolNode(
             fromToken($t),
             new IdNode(fromToken($name), $name.getText()),
             map($sts, s -> s.node)
@@ -18,10 +18,10 @@ typestate returns [TypeStateNode node]:
     }
 ;
 
-state returns [StateNode node] locals [boolean droppable]:
+state returns [TypeStateNode node] locals [boolean droppable]:
     name=ID '=' '{' ts+=transition (',' ts+=transition)* (',' DROP ':' END {$droppable=true;})? '}'
     {
-        $node = new StateNode(
+        $node = new TypeStateNode(
             fromToken($name),
             new IdNode(fromToken($name), $name.getText()),
             map($ts, t -> t.node),
@@ -36,12 +36,13 @@ transition returns [TransitionNode node]:
 ;
 
 target returns [TargetNode node]:
-    id=ID {$node = new StateRefNode(fromToken($id), new IdNode(fromToken($id), $id.getText()));}
-    | e=END {$node = new EndStateNode(fromToken($e));}
+    id=(ID | END) {
+        $node = new TypeStateRefNode(fromToken($id), new IdNode(fromToken($id), $id.getText()));
+    }
     | t='<' bs+=branch (',' bs+=branch)+ '>'
     {
-        $node = new DecisionTargetNode(
-            Position.fromToken($t),
+        $node = new OutPutStateNode(
+            fromToken($t),
             map($bs, b -> b.node)
         );
     }
@@ -60,29 +61,21 @@ method returns [MethodNode node]:
 
 branch returns [BranchNode node]:
     label=ID ':' (
-        id=ID
+        id=(ID | END)
         {
             $node = new BranchNode(
                 fromToken($label),
                 new IdNode(fromToken($label), $label.getText()),
-                new StateRefNode(fromToken($id),new IdNode(fromToken($id), $id.getText()))
-            );
-        }
-        | e=END
-        {
-            $node = new BranchNode(
-                fromToken($label),
-                new IdNode(fromToken($label), $label.getText()),
-                new EndStateNode(fromToken($e))
+                new TypeStateRefNode(fromToken($id),new IdNode(fromToken($id), $id.getText()))
             );
         }
     )
 ;
 
-type returns [TypeNode node]:
+type returns [JavaTypeNode node]:
     ids+=ID ('.' ids+=ID)* (arrs+='[]')*
     {
-        $node = new TypeNode(
+        $node = new JavaTypeNode(
             fromToken($ids.get(0)),
             map($ids, i -> new IdNode(fromToken(i), i.getText())),
             $arrs.size()

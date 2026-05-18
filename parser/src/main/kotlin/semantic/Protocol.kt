@@ -2,22 +2,19 @@ package semantic
 
 import TypestateLexer
 import TypestateParser
-import ast.DecisionTargetNode
-import ast.EndStateNode
-import ast.IdNode
-import ast.StateNode
-import ast.StateRefNode
-import ast.StateTargetNode
+import ast.OutPutStateNode
 import ast.TypeStateNode
+import ast.TypeStateRefNode
+import ast.ProtocolNode
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 import kotlin.collections.flatMap
 
 object Protocol {
-    fun parse(input: String): TypeStateNode =
+    fun parse(input: String): ProtocolNode =
         TypestateParser(CommonTokenStream(TypestateLexer(CharStreams.fromString(input)))).typestate().node
 
-    fun TypeStateNode.validate(): TypeStateNode {
+    fun ProtocolNode.validate(): ProtocolNode {
         val ids = this.states.map { it.name }
         for ((i, id) in ids.withIndex()) {
             for (j in i + 1 until ids.size) {
@@ -28,49 +25,36 @@ object Protocol {
         }
         val refs = this.states.flatMap { it.transitions }.map { it.target }.flatMap {
             when (it) {
-                is EndStateNode -> listOf()
-                is StateRefNode -> listOf(it.name)
-                is DecisionTargetNode -> it.branches
+                is TypeStateRefNode -> listOf(it)
+                is OutPutStateNode -> it.branches
                     .map { branch -> branch.target }
-                    .filterIsInstance<StateRefNode>()
-                    .map { ref -> ref.name }
             }
         }
         for (ref in refs) {
-            if(ids.none { id -> id.value == ref.value }) {
-                throw SemanticException("${ref.value} at ${ref.position.startLineCol} not declared")
+            if(!ref.isEnd() && resolve(ref) == null) {
+                throw SemanticException("${ref.name.value} at ${ref.position.startLineCol} not declared")
             }
         }
         return this
     }
 
-    // end state represented by a StateNode with no transitions
-    fun TypeStateNode.resolve(ref: StateTargetNode): StateNode? =
-        when (ref) {
-            is EndStateNode -> StateNode(
-                ref.position,
-                IdNode(ref.position, "end"),
-                emptyList(),
-                false
-            )
-            is StateRefNode -> states.find { it.name.value == ref.name.value }
-        }
+    fun ProtocolNode.resolve(ref: TypeStateRefNode): TypeStateNode? =
+        states.find { it.name.value == ref.name.value }
 
-    fun TypeStateNode.next(state: StateNode): Set<StateNode> =
+    fun ProtocolNode.next(state: TypeStateNode): Set<TypeStateNode> =
         state.transitions
             .map { it.target }
             .flatMap {
                 when (it) {
-                    is StateTargetNode -> listOf(it)
-                    is DecisionTargetNode -> it.branches.map { branch -> branch.target }
+                    is TypeStateRefNode -> listOf(it)
+                    is OutPutStateNode -> it.branches.map { branch -> branch.target }
                 }
             }
             .mapNotNull { resolve(it) }
             .toSet()
 
-
-    fun TypeStateNode.protIn(): Set<StateNode> {
-        fun reach(reachable: Set<StateNode>, reached: Set<StateNode>): Set<StateNode> {
+    fun ProtocolNode.protIn(): Set<TypeStateNode> {
+        fun reach(reachable: Set<TypeStateNode>, reached: Set<TypeStateNode>): Set<TypeStateNode> {
             val discovered = reachable.flatMap { next(it) }.toSet()
             return if (discovered.isEmpty()) {
                 reached
@@ -81,5 +65,6 @@ object Protocol {
         return reach(setOf(states.first()), setOf())
     }
 
-    fun DecisionTargetNode.labels(): Set<String> = branches.map { it.label.value }.toSet()
+    fun OutPutStateNode.labels(): Set<String> = branches.map { it.label.value }.toSet()
+    fun TypeStateRefNode.isEnd(): Boolean = name.value == "end"
 }

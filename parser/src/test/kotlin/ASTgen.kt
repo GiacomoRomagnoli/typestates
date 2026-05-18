@@ -1,16 +1,14 @@
 import ast.BranchNode
-import ast.DecisionTargetNode
-import ast.EndStateNode
+import ast.OutPutStateNode
 import ast.IdNode
 import ast.MethodNode
-import ast.StateNode
-import ast.StateRefNode
-import ast.StateTargetNode
+import ast.TypeStateNode
+import ast.TypeStateRefNode
 import ast.TNode
 import ast.TargetNode
 import ast.TransitionNode
-import ast.TypeNode
-import ast.TypeStateNode
+import ast.JavaTypeNode
+import ast.ProtocolNode
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 
@@ -39,13 +37,13 @@ fun TNode.prettyPrint(indent: String = ""): String {
         is IdNode ->
             "${indent}Id(${value})"
 
-        is TypeStateNode ->
+        is ProtocolNode ->
             buildString {
                 appendLine("${indent}TypeState ${name.value}")
                 states.forEach { appendLine(it.prettyPrint(next)) }
             }
 
-        is StateNode ->
+        is TypeStateNode ->
             buildString {
                 appendLine("${indent}State ${name.value} (droppable=$droppable)")
                 transitions.forEach { appendLine(it.prettyPrint(next)) }
@@ -65,19 +63,16 @@ fun TNode.prettyPrint(indent: String = ""): String {
                 append(")")
             }
 
-        is TypeNode ->
+        is JavaTypeNode ->
             buildString {
                 append(name.joinToString(".") { it.value })
                 repeat(arrayLevel) { append("[]") }
             }
 
-        is StateRefNode ->
+        is TypeStateRefNode ->
             "${indent}StateRef ${name.value}"
 
-        is EndStateNode ->
-            "${indent}End"
-
-        is DecisionTargetNode ->
+        is OutPutStateNode ->
             buildString {
                 appendLine("${indent}Decision")
                 branches.forEach { appendLine(it.prettyPrint(next)) }
@@ -86,7 +81,6 @@ fun TNode.prettyPrint(indent: String = ""): String {
         is BranchNode ->
             "${indent}Branch ${label.value} -> ${target.prettyPrint("")}"
 
-        is StateTargetNode -> error("Unhandled StateTargetNode")
         is TargetNode -> error("Unhandled TargetNode")
     }
 }

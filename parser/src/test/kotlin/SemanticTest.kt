@@ -52,7 +52,7 @@ class SemanticTest: FunSpec({
             }
         """.trimIndent()
         val states = parse(protocol).validate().protIn()
-        states.size shouldBe 4
-        states.map { it.name.value }.toSet() shouldBe setOf("S", "N", "end", "L")
+        states.size shouldBe 3
+        states.map { it.name.value }.toSet() shouldBe setOf("S", "N", "L")
     }
 })

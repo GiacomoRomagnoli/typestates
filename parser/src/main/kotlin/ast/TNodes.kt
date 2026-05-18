@@ -7,13 +7,13 @@ data class IdNode(
     val value: String
 ) : TNode(position)
 
-data class TypeStateNode(
+data class ProtocolNode(
     override val position: Position,
     val name: IdNode,
-    val states: List<StateNode>
+    val states: List<TypeStateNode>
 ) : TNode(position)
 
-data class StateNode(
+data class TypeStateNode(
     override val position: Position,
     val name: IdNode,
     val transitions: List<TransitionNode>,
@@ -29,27 +29,19 @@ data class TransitionNode(
 data class MethodNode(
     override val position: Position,
     val name: IdNode,
-    val args: List<TypeNode>
+    val args: List<JavaTypeNode>
 ) : TNode(position)
 
 sealed class TargetNode(
     override val position: Position,
 ) : TNode(position)
 
-sealed class StateTargetNode(
-    override val position: Position,
-) : TargetNode(position)
-
-data class StateRefNode(
+data class TypeStateRefNode(
     override val position: Position,
     val name: IdNode
-) : StateTargetNode(position)
+) : TargetNode(position)
 
-data class EndStateNode(
-    override val position: Position
-) : StateTargetNode(position)
-
-data class DecisionTargetNode(
+data class OutPutStateNode(
     override val position: Position,
     val branches: List<BranchNode>
 ) : TargetNode(position)
@@ -57,10 +49,10 @@ data class DecisionTargetNode(
 data class BranchNode(
     override val position: Position,
     val label: IdNode,
-    val target: StateTargetNode
+    val target: TypeStateRefNode
 ) : TNode(position)
 
-data class TypeNode(
+data class JavaTypeNode(
     override val position: Position,
     val name: List<IdNode>,
     val arrayLevel: Int
