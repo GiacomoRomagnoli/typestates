@@ -1,6 +1,7 @@
 package processor
 
 import dsl.CheckerScope.Companion.check
+import processor.environment.linearTypes
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
@@ -13,8 +14,8 @@ class Processor: AbstractProcessor() {
         Typestate::class.java.canonicalName,
     )
 
-    override fun process(annotations: Set<TypeElement?>?, roundEnv: RoundEnvironment?): Boolean {
-        roundEnv?.getElementsAnnotatedWith(Typestate::class.java)?.map { it as TypeElement }?.forEach {
+    override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
+        roundEnv.linearTypes().forEach {
             check(processingEnv) {
                 chkProt(it)
             }
