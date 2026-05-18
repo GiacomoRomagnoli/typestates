@@ -1,27 +1,15 @@
 package dsl
 
 import ast.OutPutStateNode
-import ast.MethodNode
-import ast.JavaTypeNode
 import processor.allMeths
 import processor.allRt
 import processor.match
 import processor.protocol
-import processor.toJavaType
 import semantic.Protocol.labels
-import semantic.Protocol.parse
 import semantic.Protocol.protIn
-import semantic.Protocol.validate
-import semantic.SemanticException
 import javax.annotation.processing.ProcessingEnvironment
-import javax.lang.model.element.ElementKind
-import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
-import javax.lang.model.type.NoType
-import javax.lang.model.type.TypeKind
-import javax.lang.model.type.TypeMirror
 import javax.tools.Diagnostic
-import javax.tools.StandardLocation
 
 class CheckerScope(val context: ProcessingEnvironment) {
 
