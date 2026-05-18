@@ -1,10 +1,10 @@
 package dsl
 
 import ast.OutPutStateNode
-import processor.allMeths
-import processor.allRt
-import processor.match
-import processor.protocol
+import processor.environment.allMeths
+import processor.environment.allRt
+import processor.environment.match
+import processor.environment.protocol
 import semantic.Protocol.labels
 import semantic.Protocol.protIn
 import javax.annotation.processing.ProcessingEnvironment

@@ -1,4 +1,4 @@
-package processor
+package processor.environment
 
 import ast.JavaTypeNode
 import ast.MethodNode
