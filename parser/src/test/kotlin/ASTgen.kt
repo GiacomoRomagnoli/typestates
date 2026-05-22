@@ -79,7 +79,7 @@ fun TNode.prettyPrint(indent: String = ""): String {
             }
 
         is BranchNode ->
-            "${indent}Branch ${label.value} -> ${target.prettyPrint("")}"
+            "${indent}Branch ${label.value} -> ${ref.prettyPrint("")}"
 
         is TargetNode -> error("Unhandled TargetNode")
     }

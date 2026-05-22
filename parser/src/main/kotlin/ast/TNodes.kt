@@ -1,5 +1,10 @@
 package ast
 
+import TypestateLexer
+import TypestateParser
+import org.antlr.v4.runtime.CharStreams
+import org.antlr.v4.runtime.CommonTokenStream
+
 sealed class TNode(open val position: Position)
 
 data class IdNode(
@@ -49,7 +54,7 @@ data class OutPutStateNode(
 data class BranchNode(
     override val position: Position,
     val label: IdNode,
-    val target: TypeStateRefNode
+    val ref: TypeStateRefNode
 ) : TNode(position)
 
 data class JavaTypeNode(
@@ -57,3 +62,6 @@ data class JavaTypeNode(
     val name: List<IdNode>,
     val arrayLevel: Int
 ) : TNode(position)
+
+fun parse(input: String): ProtocolNode =
+    TypestateParser(CommonTokenStream(TypestateLexer(CharStreams.fromString(input)))).typestate().node
