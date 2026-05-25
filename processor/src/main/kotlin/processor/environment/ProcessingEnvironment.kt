@@ -1,10 +1,10 @@
 package processor.environment
 
-import ast.JavaTypeNode
-import ast.MethodNode
-import ast.ProtocolNode
-import semantic.Protocol.parse
-import semantic.Protocol.validate
+import ProtocolContext
+import ast.parse
+import semantic.analyse
+import semantic.model.JavaType
+import semantic.model.Method
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -12,18 +12,20 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
+import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 import kotlin.collections.plus
 
-fun ProcessingEnvironment.protocol(clazz: TypeElement) : ProtocolNode {
+fun ProcessingEnvironment.protocol(clazz: TypeElement) : ProtocolContext {
     val path = clazz.getAnnotation(Typestate::class.java)?.value
     val ps = filer.getResource(
         StandardLocation.CLASS_PATH,
         "",
         path
     ).getCharContent(false).toString()
-    val protocol = parse(ps)
-    return protocol.validate()
+    val ast = parse(ps)
+    ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, clazz) }
+    return ProtocolContext(ast)
 }
 
 fun ProcessingEnvironment.allMeths(clazz: TypeElement) : List<ExecutableElement> {
@@ -35,9 +37,8 @@ fun ProcessingEnvironment.allMeths(clazz: TypeElement) : List<ExecutableElement>
     }
 }
 
-fun ProcessingEnvironment.toJavaType(node: JavaTypeNode): TypeMirror? {
-    val qualified = node.name.joinToString(".") { it.value }
-    var type = when (qualified) {
+fun ProcessingEnvironment.toJavaType(jt: JavaType): TypeMirror? {
+    var type = when (jt.qualifiedName) {
         "byte" -> typeUtils.getPrimitiveType(TypeKind.BYTE)
         "short" -> typeUtils.getPrimitiveType(TypeKind.SHORT)
         "int" -> typeUtils.getPrimitiveType(TypeKind.INT)
@@ -46,16 +47,16 @@ fun ProcessingEnvironment.toJavaType(node: JavaTypeNode): TypeMirror? {
         "double" -> typeUtils.getPrimitiveType(TypeKind.DOUBLE)
         "boolean" -> typeUtils.getPrimitiveType(TypeKind.BOOLEAN)
         "char" -> typeUtils.getPrimitiveType(TypeKind.CHAR)
-        else -> elementUtils.getTypeElement(qualified)?.asType()
+        else -> elementUtils.getTypeElement(jt.qualifiedName)?.asType()
     }
-    repeat(node.arrayLevel) {
+    repeat(jt.arrayLevel) {
         type = typeUtils.getArrayType(type)
     }
     return type
 }
 
-fun ProcessingEnvironment.match(jm: ExecutableElement, pm: MethodNode): Boolean {
-    if (!jm.simpleName.contentEquals(pm.name.value))
+fun ProcessingEnvironment.match(jm: ExecutableElement, pm: Method): Boolean {
+    if (!jm.simpleName.contentEquals(pm.simpleName))
         return false
     if (jm.parameters.size != pm.args.size)
         return false

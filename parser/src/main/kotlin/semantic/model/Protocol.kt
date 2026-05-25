@@ -1,17 +1,12 @@
 package semantic.model
 
-import ast.ProtocolNode
-
-
-class Protocol private constructor(
+class Protocol internal constructor(
     val name: String
 ) {
     lateinit var initState: TypeState
         internal set
 
-    private val typeStates = mutableMapOf<String, TypeState>()
-
-    private fun addTypeState(typeState: TypeState) = typeStates.putIfAbsent(typeState.name, typeState)
+    internal val typeStates = mutableMapOf<String, TypeState>()
 
     operator fun get(key: String) = typeStates[key]
 
@@ -26,16 +21,6 @@ class Protocol private constructor(
             }
         }
         return reach(setOf(initState), emptySet())
-    }
-
-    companion object {
-        fun build(ast: ProtocolNode): Protocol {
-            val protocol = Protocol(ast.name.value)
-            val typeStates = ast.states.map { TypeState.build(it, protocol) }
-            protocol.initState = typeStates.first()
-            typeStates.forEach { protocol.addTypeState(it) }
-            return protocol
-        }
     }
 }
 

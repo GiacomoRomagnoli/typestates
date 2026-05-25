@@ -1,9 +1,5 @@
 package semantic.model
 
-import ast.OutPutStateNode
-import ast.TypeStateNode
-import ast.TypeStateRefNode
-
 class TypeState internal constructor(
     val name: String,
     val isDroppable: Boolean,
@@ -25,19 +21,4 @@ class TypeState internal constructor(
             .mapNotNull { protocol[it] }
             .plus(outPutStateTransitions.values.flatMap { it.typeStates() })
             .toSet()
-
-    internal companion object {
-        fun build(node: TypeStateNode, protocol: Protocol): TypeState =
-            TypeState(
-                node.name.value,
-                node.droppable,
-                protocol,
-                node.transitions
-                    .filter { it.target is TypeStateRefNode }
-                    .associate { Method.build(it.method) to (it.target as TypeStateRefNode).name.value },
-                node.transitions
-                    .filter { it.target is OutPutStateNode }
-                    .associate { Method.build(it.method) to OutPutState.build(it.target as OutPutStateNode, protocol) }
-            )
-    }
 }
