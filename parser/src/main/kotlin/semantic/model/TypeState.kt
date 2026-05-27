@@ -21,4 +21,22 @@ class TypeState internal constructor(
             .mapNotNull { protocol[it] }
             .plus(outPutStateTransitions.values.flatMap { it.typeStates() })
             .toSet()
+
+    fun simulates(u2: TypeState, r: Set<Pair<TypeState, TypeState>> = setOf()): Boolean {
+        if (u2.isDroppable) if(!this.isDroppable) return false
+        return u2.methods()
+            .map { this[it] to u2[it] }
+            .all { (w1, w2) -> w1 != null && w2 != null && r.contains(w1 to w2) || w1!!.simulates(w2!!, r)}
+    }
+
+    fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>> = setOf()) =
+        w2.labels()
+            .map { this to w2[it] }
+            .all { (u1, u2) -> u2 != null && r.contains(u1 to u2) || u1.simulates(u2!!, r) }
+
+    override fun simulates(w2: State, r: Set<Pair<TypeState, TypeState>>) =
+         when(w2) {
+            is TypeState -> this.simulates(w2, r + (this to w2))
+            is OutPutState -> this.simulates(w2, r)
+        }
 }

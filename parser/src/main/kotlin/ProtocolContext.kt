@@ -64,6 +64,7 @@ class ProtocolContext(val ast: ProtocolNode) {
         val typeStates = ast.states.map { build(it, protocol) }
         protocol.initState = typeStates.first()
         typeStates.forEach { protocol.typeStates.putIfAbsent(it.name, it) }
+        protocol.typeStates.put("end", TypeState("end", false, protocol, emptyMap(), emptyMap()))
         return protocol
     }
 
