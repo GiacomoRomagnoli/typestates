@@ -9,12 +9,13 @@ import semantic.model.Method
 import semantic.model.OutPutState
 import semantic.model.Protocol
 import semantic.model.TypeState
+import java.util.IdentityHashMap
 
 class ProtocolContext(val ast: ProtocolNode) {
-    private val methods = mutableMapOf<Method, MethodNode>()
+    private val methods = IdentityHashMap<Method, MethodNode>()
     private val outputStates = mutableMapOf<OutPutState, OutPutStateNode>()
     private val typeStates = mutableMapOf<TypeState, TypeStateNode>()
-    private val javaTypes = mutableMapOf<JavaType, JavaTypeNode>()
+    private val javaTypes = IdentityHashMap<JavaType, JavaTypeNode>()
     var model: Protocol
 
     init {
