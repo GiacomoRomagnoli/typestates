@@ -1,6 +1,6 @@
 package semantic.model
 
-data class JavaType internal constructor(
+data class JavaType(
     val qualifiedName: String,
     val arrayLevel: Int
 )

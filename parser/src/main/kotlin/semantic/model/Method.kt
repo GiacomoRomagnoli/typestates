@@ -1,6 +1,6 @@
 package semantic.model
 
-data class Method internal constructor(
+data class Method(
     val simpleName: String,
     val args: List<JavaType>
 )
