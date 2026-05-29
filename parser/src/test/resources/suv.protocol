@@ -1,0 +1,18 @@
+typestate SUV {
+    OFF = {
+        turnOn() : <true : COMF_ON, false : OFF>,
+        drop : end
+    }
+    COMF_ON = {
+        turnOff() : OFF,
+        setSpeed(int) : COMF_ON,
+        switchMode() : <SPORT : SPORT_ON, COMFORT : COMF_ON>,
+        setEcoDrive(boolean) : COMF_ON
+    }
+    SPORT_ON = {
+        turnOff() : OFF,
+        setSpeed(int) : SPORT_ON,
+        switchMode() : <SPORT : SPORT_ON, COMFORT : COMF_ON>,
+        setFourWheels(boolean) : SPORT_ON
+    }
+}

@@ -1,0 +1,10 @@
+typestate Car {
+    OFF = {
+        turnOn () : <true : ON , false : OFF > ,
+        drop : end
+    }
+    ON = {
+        turnOff() : OFF ,
+        setSpeed(int): ON
+    }
+}
