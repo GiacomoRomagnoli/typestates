@@ -1,7 +1,8 @@
+package semantic
+
 import ast.parse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import semantic.analyse
 
 class SemanticTest: FunSpec({
 
