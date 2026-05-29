@@ -1,14 +1,7 @@
-import ast.BranchNode
-import ast.OutPutStateNode
-import ast.IdNode
-import ast.MethodNode
-import ast.TypeStateNode
-import ast.TypeStateRefNode
-import ast.TNode
-import ast.TargetNode
-import ast.TransitionNode
-import ast.JavaTypeNode
-import ast.ProtocolNode
+package ast
+
+import TypestateLexer
+import TypestateParser
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
 
