@@ -3,7 +3,7 @@ package semantic.model
 class OutPutState internal constructor(
     private val protocol: Protocol,
     private val branches: Map<String, String>
-) : State {
+) : State() {
     operator fun get(label: String) =
         when (val ref = branches[label]) {
             null -> null

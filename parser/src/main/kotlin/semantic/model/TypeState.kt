@@ -6,7 +6,7 @@ class TypeState internal constructor(
     private val protocol: Protocol,
     private val typeStateTransitions: Map<Method, String>,
     private val outPutStateTransitions: Map<Method, OutPutState>
-) : State {
+) : State() {
 
     operator fun get(method: Method) =
         when (val ref = typeStateTransitions[method]) {
@@ -24,14 +24,14 @@ class TypeState internal constructor(
             .plus(outPutStateTransitions.values.flatMap { it.typeStates() })
             .toSet()
 
-    private fun simulates(u2: TypeState, r: Set<Pair<TypeState, TypeState>> = setOf()): Boolean {
+    private fun simulates(u2: TypeState, r: Set<Pair<TypeState, TypeState>>): Boolean {
         if (u2.isDroppable) if(!this.isDroppable) return false
         return u2.methods()
             .map { this[it] to u2[it] }
             .all { (w1, w2) -> w1 != null && w2 != null && (r.contains(w1 to w2) || w1.simulates(w2, r))}
     }
 
-    private fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>> = setOf()) =
+    private fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>>) =
         w2.labels()
             .map { this to w2[it] }
             .all { (u1, u2) -> u2 != null && (r.contains(u1 to u2) || u1.simulates(u2, r)) }

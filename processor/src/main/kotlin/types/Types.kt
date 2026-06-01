@@ -28,7 +28,7 @@ infix fun Type.sub(other: Type): Boolean = when {
     this is Und -> other is Und
     this is U -> when (other) {
         is End, is Shared, is Null, is Und -> this.state.isEnd()
-        is U -> this.state.simulates(other.state)
+        is U -> this.state simulates other.state
         else -> false
     }
     else -> false
