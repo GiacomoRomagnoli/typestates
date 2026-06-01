@@ -16,6 +16,8 @@ class TypeState internal constructor(
 
     fun methods() = typeStateTransitions.keys + outPutStateTransitions.keys
 
+    fun isEnd() = methods().isEmpty()
+
     fun typeStates(): Set<TypeState> =
         typeStateTransitions.values
             .mapNotNull { protocol[it] }
