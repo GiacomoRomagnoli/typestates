@@ -11,7 +11,7 @@ import semantic.model.Protocol
 import semantic.model.TypeState
 import java.util.IdentityHashMap
 
-class ProtocolContext(val ast: ProtocolNode) {
+class SemanticModel(val ast: ProtocolNode) {
     private val methods = IdentityHashMap<Method, MethodNode>()
     private val outputStates = mutableMapOf<OutPutState, OutPutStateNode>()
     private val typeStates = mutableMapOf<TypeState, TypeStateNode>()
