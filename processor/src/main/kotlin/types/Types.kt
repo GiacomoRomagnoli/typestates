@@ -1,11 +1,14 @@
 package types
 
+import semantic.model.Method
+import semantic.model.OutPutState
 import semantic.model.TypeState
 
 sealed interface Type
 
 data class Union(val t1: Type, val t2: Type): Type
 data class Intersection(val t1: Type, val t2: Type): Type
+data class O(val state: OutPutState): Type
 data class U(val state: TypeState): Type
 data object Top: Type
 data object Bottom: Type
@@ -38,4 +41,41 @@ fun typestates(t: Type): Set<TypeState> = when(t) {
     is Union -> typestates(t.t1) + typestates(t.t2)
     is Intersection -> typestates(t.t1) + typestates(t.t2)
     else -> emptySet()
+}
+fun ucast(t: Type, c1: Class, c2: Class): Type = when(t) {
+    is Union -> ucast(t.t1, c1, c2) and ucast(t.t2, c1, c2)
+    is Intersection -> ucast(t.t1, c1, c2) or ucast(t.t2, c1, c2)
+    is U -> protIn(c2).map { U(it) as Type }.filter { t sub it }.reduceOrNull { t1, t2 -> t1 or t2 } ?: Top
+    else -> t
+}
+fun dcast(t: Type, c1: Class, c2: Class): Type = when(t) {
+    is Union -> dcast(t.t1, c1, c2) and dcast(t.t2, c1, c2)
+    is Intersection -> dcast(t.t1, c1, c2) or dcast(t.t2, c1, c2)
+    is U -> protIn(c2).map { U(it) as Type }.filter { it sub t }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Bottom
+    else -> t
+}
+fun evoI(t: Type, mt: Method): Type = when(t) {
+    is Union -> evoI(t.t1, mt) and evoI(t.t2, mt)
+    is Intersection -> evoI(t.t1, mt) or evoI(t.t2, mt)
+    is U -> when(val w = t.state[mt]) {
+        is OutPutState -> O(w)
+        is TypeState -> U(w)
+        null -> Top
+    }
+    else -> Top
+}
+fun evoO(t: Type, l: String): Type = when(t) {
+    is Union -> evoO(t.t1, l) and evoO(t.t2, l)
+    is Intersection -> evoO(t.t1, l) or evoO(t.t2, l)
+    is O -> when(val u = t.state[l]) {
+        is TypeState -> U(u)
+        null -> t
+    }
+    else -> t
+}
+fun resolve(t: Type): Type = when(t) {
+    is Union -> resolve(t.t1) and resolve(t.t2)
+    is Intersection -> resolve(t.t1) or resolve(t.t2)
+    is O -> t.state.typeStates().map { U(it) as Type }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Top
+    else -> t
 }

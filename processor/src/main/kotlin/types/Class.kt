@@ -9,7 +9,7 @@ import semantic.model.OutPutState
 import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic
 
-class Class(val element: TypeElement, val semantic: SemanticModel) {
+data class Class(val element: TypeElement, val semantic: SemanticModel) {
     val protocol get() = semantic.model
     val qualifiedName get() = element.qualifiedName.toString()
     val simpleName get() = element.simpleName.toString()
