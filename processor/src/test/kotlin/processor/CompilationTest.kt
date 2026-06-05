@@ -1,11 +1,12 @@
+package processor
+
 import com.google.testing.compile.Compilation
 import com.google.testing.compile.Compiler
 import com.google.testing.compile.JavaFileObjects
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
-import processor.Processor
 
-class TypeStateProcessorTest: FunSpec({
+class CompilationTest: FunSpec({
     test("Greeter") {
         val source = JavaFileObjects.forResource("classes/Greeter.java")
         val compilation = Compiler.javac()
