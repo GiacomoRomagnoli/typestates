@@ -1,10 +1,11 @@
 package processor.environment
 
-import ProtocolContext
+import SemanticModel
 import ast.parse
 import semantic.analyse
 import semantic.model.JavaType
 import semantic.model.Method
+import types.Class
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -16,16 +17,16 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 import kotlin.collections.plus
 
-fun ProcessingEnvironment.protocol(clazz: TypeElement) : ProtocolContext {
-    val path = clazz.getAnnotation(Typestate::class.java)?.value
+fun ProcessingEnvironment.classOf(element: TypeElement) : Class {
+    val path = element.getAnnotation(Typestate::class.java)?.value
     val ps = filer.getResource(
         StandardLocation.CLASS_PATH,
         "",
         path
     ).getCharContent(false).toString()
     val ast = parse(ps)
-    ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, clazz) }
-    return ProtocolContext(ast)
+    ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, element) }
+    return Class(element, SemanticModel(ast))
 }
 
 fun ProcessingEnvironment.allMeths(clazz: TypeElement) : List<ExecutableElement> {

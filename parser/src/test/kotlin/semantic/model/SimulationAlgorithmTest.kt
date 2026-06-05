@@ -1,6 +1,6 @@
 package semantic.model
 
-import ProtocolContext
+import SemanticModel
 import ast.parse
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
@@ -16,8 +16,8 @@ class SimulationAlgorithmTest: FunSpec({
     beforeTest {
         val carInput = requireNotNull(javaClass.getResource("/car.protocol")?.readText())
         val suvInput = requireNotNull(javaClass.getResource("/suv.protocol")?.readText())
-        car = ProtocolContext(parse(carInput)).model
-        suv = ProtocolContext(parse(suvInput)).model
+        car = SemanticModel(parse(carInput)).model
+        suv = SemanticModel(parse(suvInput)).model
     }
 
     test("COMF_ON simulates ON") {

@@ -33,3 +33,9 @@ infix fun Type.sub(other: Type): Boolean = when {
     }
     else -> false
 }
+fun typestates(t: Type): Set<TypeState> = when(t) {
+    is U -> setOf(t.state)
+    is Union -> typestates(t.t1) + typestates(t.t2)
+    is Intersection -> typestates(t.t1) + typestates(t.t2)
+    else -> emptySet()
+}
