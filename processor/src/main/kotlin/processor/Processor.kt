@@ -1,7 +1,7 @@
 package processor
 
 import processor.environment.Java
-import processor.environment.classOf
+import processor.environment.linearClassOf
 import processor.environment.linearTypes
 import types.chkProt
 import javax.annotation.processing.AbstractProcessor
@@ -24,7 +24,7 @@ class Processor: AbstractProcessor() {
 
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
         roundEnv.linearTypes().forEach {
-            val c = Java.env.classOf(it)
+            val c = Java.env.linearClassOf(it)
             chkProt(c)
         }
         return true
