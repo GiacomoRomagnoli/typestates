@@ -9,7 +9,7 @@ import semantic.model.OutPutState
 import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic
 
-data class LinearClass(val element: TypeElement, val semantic: SemanticModel) {
+data class LinearClass(override val element: TypeElement, val semantic: SemanticModel): Class {
     val protocol get() = semantic.model
     val qualifiedName get() = element.qualifiedName.toString()
     val simpleName get() = element.simpleName.toString()
@@ -17,7 +17,6 @@ data class LinearClass(val element: TypeElement, val semantic: SemanticModel) {
 
 fun protSt(c: LinearClass) = c.protocol.protSt
 fun protIn(c: LinearClass) = c.protocol.protIn
-fun allMeths(c: LinearClass) = Java.env.allMeths(c.element)
 fun chkProt(c: LinearClass): Boolean {
     val javaMethods = allMeths(c)
     var holds = true
