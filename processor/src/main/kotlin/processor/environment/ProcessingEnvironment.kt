@@ -5,7 +5,7 @@ import ast.parse
 import semantic.analyse
 import semantic.model.JavaType
 import semantic.model.Method
-import types.Class
+import types.LinearClass
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -17,7 +17,7 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 import kotlin.collections.plus
 
-fun ProcessingEnvironment.classOf(element: TypeElement) : Class {
+fun ProcessingEnvironment.classOf(element: TypeElement) : LinearClass {
     val path = element.getAnnotation(Typestate::class.java)?.value
     val ps = filer.getResource(
         StandardLocation.CLASS_PATH,
@@ -26,7 +26,7 @@ fun ProcessingEnvironment.classOf(element: TypeElement) : Class {
     ).getCharContent(false).toString()
     val ast = parse(ps)
     ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, element) }
-    return Class(element, SemanticModel(ast))
+    return LinearClass(element, SemanticModel(ast))
 }
 
 fun ProcessingEnvironment.allMeths(clazz: TypeElement) : List<ExecutableElement> {

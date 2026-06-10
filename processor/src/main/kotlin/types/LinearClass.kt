@@ -9,15 +9,15 @@ import semantic.model.OutPutState
 import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic
 
-data class Class(val element: TypeElement, val semantic: SemanticModel) {
+data class LinearClass(val element: TypeElement, val semantic: SemanticModel) {
     val protocol get() = semantic.model
     val qualifiedName get() = element.qualifiedName.toString()
     val simpleName get() = element.simpleName.toString()
 }
 
-fun protIn(c: Class) = c.protocol.protIn()
-fun allMeths(c: Class) = Java.env.allMeths(c.element)
-fun chkProt(c: Class): Boolean {
+fun protIn(c: LinearClass) = c.protocol.protIn()
+fun allMeths(c: LinearClass) = Java.env.allMeths(c.element)
+fun chkProt(c: LinearClass): Boolean {
     val javaMethods = allMeths(c)
     var holds = true
     for (s in protIn(c)) {
