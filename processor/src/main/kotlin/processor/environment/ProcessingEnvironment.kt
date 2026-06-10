@@ -17,17 +17,19 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 import kotlin.collections.plus
 
-fun ProcessingEnvironment.classOf(element: TypeElement) : LinearClass {
-    val path = element.getAnnotation(Typestate::class.java)?.value
-    val ps = filer.getResource(
-        StandardLocation.CLASS_PATH,
-        "",
-        path
-    ).getCharContent(false).toString()
-    val ast = parse(ps)
-    ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, element) }
-    return LinearClass(element, SemanticModel(ast))
-}
+private val cache: MutableMap<String, LinearClass> = mutableMapOf()
+fun ProcessingEnvironment.linearClassOf(element: TypeElement) =
+    cache.getOrPut(element.qualifiedName.toString()) {
+        val path = element.getAnnotation(Typestate::class.java)?.value
+        val ps = filer.getResource(
+            StandardLocation.CLASS_PATH,
+            "",
+            path
+        ).getCharContent(false).toString()
+        val ast = parse(ps)
+        ast.analyse().forEach { messager.printMessage(Diagnostic.Kind.ERROR, it.message, element) }
+        LinearClass(element, SemanticModel(ast))
+    }
 
 fun ProcessingEnvironment.allMeths(clazz: TypeElement) : List<ExecutableElement> {
     val methods = clazz.enclosedElements.filter { it.kind == ElementKind.METHOD }.map { it as ExecutableElement }
