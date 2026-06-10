@@ -10,17 +10,19 @@ class OutPutState internal constructor(
             else -> protocol[ref]
         }
 
-    fun labels() = branches.keys
+    val labels
+        get() = branches.keys
 
-    fun typeStates() = branches.values.mapNotNull { protocol[it] }.toSet()
+    val typeStates
+        get() = branches.values.mapNotNull { protocol[it] }.toSet()
 
     private fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>> = setOf()) =
-        this.labels()
+        this.labels
             .map { this[it] to w2[it] }
             .all { (u1, u2) -> u2 != null && u1 != null && (r.contains(u1 to u2) || u1.simulates(u2, r + (u1 to u2))) }
 
     private fun simulates(u2: TypeState, r: Set<Pair<TypeState, TypeState>> = setOf()) =
-        this.labels()
+        this.labels
             .map { this[it] to u2}
             .all { (u1, u2) -> u1 != null && (r.contains(u1 to u2) || u1.simulates(u2, r + (u1 to u2))) }
 

@@ -14,25 +14,30 @@ class TypeState internal constructor(
             else -> protocol[ref]
         }
 
-    fun methods() = typeStateTransitions.keys + outPutStateTransitions.keys
+    val methods
+        get() = typeStateTransitions.keys + outPutStateTransitions.keys
 
-    fun isEnd() = methods().isEmpty()
+    val isEnd
+        get() = methods.isEmpty()
 
-    fun typeStates(): Set<TypeState> =
-        typeStateTransitions.values
+    val outPutStates
+        get() = outPutStateTransitions.values.toSet()
+
+    val typeStates
+        get() = typeStateTransitions.values
             .mapNotNull { protocol[it] }
-            .plus(outPutStateTransitions.values.flatMap { it.typeStates() })
+            .plus(outPutStateTransitions.values.flatMap { it.typeStates })
             .toSet()
 
     private fun simulates(u2: TypeState, r: Set<Pair<TypeState, TypeState>>): Boolean {
         if (u2.isDroppable) if(!this.isDroppable) return false
-        return u2.methods()
+        return u2.methods
             .map { this[it] to u2[it] }
             .all { (w1, w2) -> w1 != null && w2 != null && (r.contains(w1 to w2) || w1.simulates(w2, r))}
     }
 
     private fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>>) =
-        w2.labels()
+        w2.labels
             .map { this to w2[it] }
             .all { (u1, u2) -> u2 != null && (r.contains(u1 to u2) || u1.simulates(u2, r)) }
 

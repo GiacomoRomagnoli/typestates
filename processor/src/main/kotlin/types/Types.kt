@@ -30,7 +30,7 @@ infix fun Type.sub(other: Type): Boolean = when {
     this is Null -> other is Null
     this is Und -> other is Und
     this is U -> when (other) {
-        is End, is Shared, is Null, is Und -> this.state.isEnd()
+        is End, is Shared, is Null, is Und -> this.state.isEnd
         is U -> this.state simulates other.state
         else -> false
     }
@@ -76,6 +76,6 @@ fun evoO(t: Type, l: String): Type = when(t) {
 fun resolve(t: Type): Type = when(t) {
     is Union -> resolve(t.t1) and resolve(t.t2)
     is Intersection -> resolve(t.t1) or resolve(t.t2)
-    is O -> t.state.typeStates().map { U(it) as Type }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Top
+    is O -> t.state.typeStates.map { U(it) as Type }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Top
     else -> t
 }

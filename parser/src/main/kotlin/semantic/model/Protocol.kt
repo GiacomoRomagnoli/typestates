@@ -10,17 +10,20 @@ class Protocol internal constructor(
 
     operator fun get(key: String) = typeStates[key]
 
-    fun protIn(): Set<TypeState> {
-        fun reach(frontier: Set<TypeState>, visited: Set<TypeState>): Set<TypeState> {
-            val discovered = frontier.flatMap { it.typeStates() }.toSet()
-            val newStates = discovered - visited
-            return if (newStates.isEmpty()) {
-                visited + frontier
-            } else {
-                reach(newStates, visited + frontier)
-            }
+    private fun reach(frontier: Set<TypeState>, visited: Set<TypeState>): Set<TypeState> {
+        val discovered = frontier.flatMap { it.typeStates }.toSet()
+        val newStates = discovered - visited
+        return if (newStates.isEmpty()) {
+            visited + frontier
+        } else {
+            reach(newStates, visited + frontier)
         }
-        return reach(setOf(initState), emptySet())
     }
+
+    val protIn
+        get() = reach(setOf(initState), emptySet())
+
+    val protSt
+        get() = protIn.flatMap { it.outPutStates + it }.toSet()
 }
 

@@ -15,13 +15,14 @@ data class LinearClass(val element: TypeElement, val semantic: SemanticModel) {
     val simpleName get() = element.simpleName.toString()
 }
 
-fun protIn(c: LinearClass) = c.protocol.protIn()
+fun protSt(c: LinearClass) = c.protocol.protSt
+fun protIn(c: LinearClass) = c.protocol.protIn
 fun allMeths(c: LinearClass) = Java.env.allMeths(c.element)
 fun chkProt(c: LinearClass): Boolean {
     val javaMethods = allMeths(c)
     var holds = true
     for (s in protIn(c)) {
-        for (m in s.methods()) {
+        for (m in s.methods) {
             val method = javaMethods.find { Java.env.match(it, m) }
             if (method == null) {
                 holds = false
@@ -34,7 +35,7 @@ fun chkProt(c: LinearClass): Boolean {
             } else when (val w = s[m]) {
                 is OutPutState -> {
                     val expected = Java.env.allRt(method)
-                    val actual = w.labels()
+                    val actual = w.labels
                     if (expected != actual) {
                         holds = false
                         Java.messager.printMessage(
