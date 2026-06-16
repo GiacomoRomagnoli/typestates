@@ -1,8 +1,10 @@
-typestate CAR {
+typestate Car {
     OFF = {
-        start() : <true: ON, false: OFF>
+        turnOn () : <true : ON , false : OFF > ,
+        drop : end
     }
     ON = {
-        stop() : end
+        turnOff() : OFF ,
+        setSpeed(int): ON
     }
 }

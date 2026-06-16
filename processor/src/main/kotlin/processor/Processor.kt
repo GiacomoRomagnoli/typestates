@@ -1,13 +1,18 @@
 package processor
 
 import processor.environment.Java
+import processor.environment.annotatedTypeElements
 import processor.environment.linearClassOf
 import processor.environment.linearTypes
+import types.NonLinearClass
+import types.chkOvr
 import types.chkProt
+import types.sup
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.TypeElement
+import javax.tools.Diagnostic
 
 class Processor: AbstractProcessor() {
 
@@ -25,7 +30,31 @@ class Processor: AbstractProcessor() {
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
         roundEnv.linearTypes().forEach {
             val c = Java.env.linearClassOf(it)
-            chkProt(c)
+            Java.messager.printMessage(
+                Diagnostic.Kind.NOTE,
+                """
+                    PROTOCOL:
+                    class -> ${c.element.qualifiedName}
+                    chkProt -> ${chkProt(c)}
+                """.trimIndent()
+            )
+        }
+        roundEnv.annotatedTypeElements().map {
+            when (it.getAnnotation(Typestate::class.java)) {
+                null -> NonLinearClass(it)
+                else -> Java.env.linearClassOf(it)
+            }
+        }.forEach {
+            val sup = sup(it)
+            Java.messager.printMessage(
+                Diagnostic.Kind.NOTE,
+                """
+                    OVERRIDE:
+                    class -> ${it.element.qualifiedName}
+                    super class -> ${sup.element.qualifiedName}
+                    chkOvr -> ${chkOvr(it, sup)}
+                """.trimIndent()
+            )
         }
         return true
     }
