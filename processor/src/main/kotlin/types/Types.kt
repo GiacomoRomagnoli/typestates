@@ -5,6 +5,7 @@ import classes.protIn
 import semantic.model.Method
 import semantic.model.OutPutState
 import semantic.model.TypeState
+import semantic.model.State
 
 sealed interface Type
 
@@ -21,6 +22,20 @@ data object End: Type
 
 infix fun Type.or(other: Type) = Intersection(this, other)
 infix fun Type.and(other: Type) = Union(this, other)
+val Type.labels: Set<String>
+    get() = when (this) {
+        is Union -> t1.labels + t2.labels
+        is Intersection -> t1.labels + t2.labels
+        is O -> state.labels
+        else -> emptySet()
+    }
+val Type.isResolved : Boolean
+    get() = when (this) {
+        is Union -> t1.isResolved && t2.isResolved
+        is Intersection -> t1.isResolved && t2.isResolved
+        is O -> false
+        else -> true
+    }
 infix fun Type.sub(other: Type): Boolean = when {
     this is Bottom -> true
     other is Top -> true
@@ -38,10 +53,11 @@ infix fun Type.sub(other: Type): Boolean = when {
     }
     else -> false
 }
-fun typestates(t: Type): Set<TypeState> = when(t) {
-    is U -> setOf(t.state)
+fun typestates(t: Type): Set<State> = when(t) {
     is Union -> typestates(t.t1) + typestates(t.t2)
     is Intersection -> typestates(t.t1) + typestates(t.t2)
+    is U -> setOf(t.state)
+    is O -> setOf(t.state)
     else -> emptySet()
 }
 fun ucast(t: Type, c1: LinearClass, c2: LinearClass): Type = when(t) {
