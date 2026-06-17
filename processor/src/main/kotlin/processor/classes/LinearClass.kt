@@ -1,8 +1,7 @@
-package types
+package processor.classes
 
 import SemanticModel
 import processor.environment.Java
-import processor.environment.allMeths
 import processor.environment.allRt
 import processor.environment.match
 import semantic.model.OutPutState

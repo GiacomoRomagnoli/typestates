@@ -1,5 +1,9 @@
 package types
 
+import processor.classes.Class
+import processor.classes.LinearClass
+import processor.classes.NonLinearClass
+import processor.classes.protIn
 import processor.environment.Java
 
 

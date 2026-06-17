@@ -4,10 +4,10 @@ import processor.environment.Java
 import processor.environment.annotatedTypeElements
 import processor.environment.linearClassOf
 import processor.environment.linearTypes
-import types.NonLinearClass
-import types.chkOvr
-import types.chkProt
-import types.sup
+import processor.classes.NonLinearClass
+import processor.classes.chkOvr
+import processor.classes.chkProt
+import processor.classes.sup
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.ProcessingEnvironment
 import javax.annotation.processing.RoundEnvironment

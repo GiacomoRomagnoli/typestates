@@ -1,4 +1,4 @@
-package types
+package processor.classes
 
 import processor.elements.ensures
 import processor.elements.requires

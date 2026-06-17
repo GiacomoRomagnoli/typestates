@@ -5,7 +5,7 @@ import ast.parse
 import semantic.analyse
 import semantic.model.JavaType
 import semantic.model.Method
-import types.LinearClass
+import processor.classes.LinearClass
 import javax.annotation.processing.ProcessingEnvironment
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement

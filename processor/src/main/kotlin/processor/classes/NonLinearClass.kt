@@ -1,4 +1,4 @@
-package types
+package processor.classes
 
 import javax.lang.model.element.TypeElement
 
