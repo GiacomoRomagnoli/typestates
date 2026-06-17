@@ -1,4 +1,4 @@
-package processor.classes
+package classes
 
 import javax.lang.model.element.TypeElement
 

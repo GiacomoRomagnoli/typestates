@@ -1,4 +1,4 @@
-package processor.classes
+package classes
 
 import SemanticModel
 import processor.environment.Java

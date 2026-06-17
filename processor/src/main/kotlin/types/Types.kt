@@ -1,7 +1,7 @@
 package types
 
-import processor.classes.LinearClass
-import processor.classes.protIn
+import classes.LinearClass
+import classes.protIn
 import semantic.model.Method
 import semantic.model.OutPutState
 import semantic.model.TypeState
