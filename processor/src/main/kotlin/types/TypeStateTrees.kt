@@ -12,7 +12,7 @@ fun nodup(tree: TypeStateTree) = tree.children.map { it.c }.toSet().size == tree
 val TypeStateTree.isWellFormed : Boolean
     get() {
         if (c is LinearClass && !typestates(t).all { it in c.protocol.protSt }) return false
-        else if (c is NonLinearClass && typestates(t).isNotEmpty()) return false
+        else if (c is NonLinearClass && t != Top) return false
         if (!nodup(this)) return false
         for (child in children) {
             if (sup(child.c) != c) return false
@@ -23,23 +23,21 @@ val TypeStateTree.isWellFormed : Boolean
         }
         return true
     }
-fun ucastTT(tree: TypeStateTree, target: Class): TypeStateTree? {
-    if (!Java.types.isSubtype(tree.c.element.asType(), target.element.asType())) return null
-    if (target == tree.c) return tree
-    val superC = sup(tree.c)
-    return when(tree.c) {
-        is LinearClass -> when(superC) {
-            is NonLinearClass -> ucastTT(TypeStateTree(superC, Top, listOf(tree)), target)
-            is LinearClass -> ucastTT(TypeStateTree(superC, ucast(tree.t, tree.c, superC), listOf(tree)), target)
-        }
-        is NonLinearClass -> when(superC) {
-            is NonLinearClass -> ucastTT(TypeStateTree(superC, Top, listOf(tree)), target)
-            is LinearClass -> TODO()
+fun ucastTT(tree: TypeStateTree, target: Class): TypeStateTree {
+    require(Java.types.isSubtype(tree.c.element.asType(), target.element.asType()))
+    fun recursion(tree: TypeStateTree, target: Class): TypeStateTree {
+        if (target == tree.c) return tree
+        val superC = sup(tree.c)
+        return when {
+            tree.c is LinearClass && superC is LinearClass ->
+                ucastTT(TypeStateTree(superC, ucast(tree.t, tree.c, superC), listOf(tree)), target)
+            else -> ucastTT(TypeStateTree(superC, Top, listOf(tree)), target)
         }
     }
+    return recursion(tree, target)
 }
-fun closestTT(tree: TypeStateTree, c: Class): TypeStateTree? {
-    if (!Java.types.isSubtype(c.element.asType(), tree.c.element.asType())) return null
+fun closestTT(tree: TypeStateTree, c: Class): TypeStateTree {
+    require(!Java.types.isSubtype(c.element.asType(), tree.c.element.asType()))
     fun recursion(tree: TypeStateTree, c: Class): TypeStateTree {
         val subTree = tree.children.find { Java.types.isSubtype(c.element.asType(), it.c.element.asType()) }
         if (subTree != null) return recursion(subTree, c)
