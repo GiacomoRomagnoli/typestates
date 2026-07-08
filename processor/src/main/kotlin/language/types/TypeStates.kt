@@ -1,7 +1,7 @@
 package language.types
 
 import language.model.JavaClass
-import protocol.model.Method
+import language.model.JavaMethod
 import protocol.model.OutPutState
 import protocol.model.TypeState
 import protocol.model.State
@@ -17,7 +17,6 @@ data object Bottom: T
 data object Shared: T
 data object Null: T
 data object Und: T
-data object End: T
 
 infix fun T.or(other: T) = Intersection(this, other)
 infix fun T.and(other: T) = Union(this, other)
@@ -46,7 +45,7 @@ infix fun T.sub(other: T): Boolean = when {
     this is Null -> other is Null
     this is Und -> other is Und
     this is U -> when (other) {
-        is End, is Shared, is Null, is Und -> this.state.isEnd
+        is Shared, is Null, is Und -> this.state.isEnd
         is U -> this.state simulates other.state
         else -> false
     }
@@ -71,10 +70,10 @@ fun dcast(t: T, c1: JavaClass, c2: JavaClass): T = when(t) {
     is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { it sub t }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Bottom
     else -> t
 }
-fun evoI(t: T, mt: Method): T = when(t) {
+fun evoI(t: T, mt: JavaMethod): T = when(t) {
     is Union -> evoI(t.t1, mt) and evoI(t.t2, mt)
     is Intersection -> evoI(t.t1, mt) or evoI(t.t2, mt)
-    is U -> when(val w = t.state[mt]) {
+    is U -> when(val w = t.state[mt.sign]) {
         is OutPutState -> O(w)
         is TypeState -> U(w)
         null -> Top

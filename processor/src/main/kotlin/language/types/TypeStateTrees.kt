@@ -1,84 +1,82 @@
 package language.types
 
+import language.model.JavaClass
+import language.model.JavaMethod
+
 data class TypeStateTree(val classType: ClassType, val children: List<TypeStateTree> = emptyList()) {
+    constructor(clazz: JavaClass, type: T, children: List<TypeStateTree> = emptyList())
+            : this(clazz at type, children)
+
     val clazz = classType.clazz
     val type = classType.type
     private val nodup = children.map { it.clazz }.toSet().size == children.size
-    val isWellFormed by lazy {
-
+    val isWellFormed: Boolean by lazy {
+        if (clazz.isLinear)
+            typestates(type).all { it in clazz.protocol!!.protSt }
+        else
+            typestates(type).isEmpty()
+        &&
+        nodup &&
+        children.all { child ->
+            child.clazz.superclass == clazz &&
+            child.isWellFormed &&
+            if (child.type.isResolved)
+                child.classType sub classType
+            else
+                child.type.labels.all { l ->
+                    (child.clazz at evoO(child.type, l)) sub (clazz at evoO(type, l))
+                }
+        }
     }
 }
 
+fun ucastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
+    if (target == tree.clazz) return tree
+    val superclass = tree.clazz.superclass ?: return tree
+    val head = if (superclass.isLinear) {
+        TypeStateTree(superclass, ucast(tree.type,tree.clazz,superclass),listOf(tree))
+    }
+    // se tree.type è in end o è droppable allora Shared non Top
+    else {
+        TypeStateTree(superclass,Top,listOf(tree))
+    }
+    return ucastTT(head, target)
+}
 
+fun dcastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
+    val closest = closestTT(tree, target)
+    return if (target == closest.clazz)
+        closest
+    else
+        TypeStateTree(target,dcast(closest.type, closest.clazz, target))
+}
 
-//fun nodup(tree: TypeStateTree) = tree.children.map { it.c }.toSet().size == tree.children.size
-//val TypeStateTree.isWellFormed : Boolean
-//    get() {
-//        if (c is LinearClass && !typestates(t).all { it in c.protocol.protSt }) return false
-//        else if (c is NonLinearClass && typestates(t).isNotEmpty()) return false
-//        if (!nodup(this)) return false
-//        for (child in children) {
-//            if (sup(child.c) != c) return false
-//            if (!child.isWellFormed) return false
-//            if (child.t.isResolved)
-//                if(!(child.c typed child.t sub (c typed t))) return false
-//            else if (!child.t.labels.all { l -> child.c typed evoO(child.t, l) sub (c typed evoO(t, l)) }) return false
-//        }
-//        return true
-//    }
-//fun ucastTT(tree: TypeStateTree, target: Class): TypeStateTree {
-//    require(Java.types.isSubtype(tree.c.element.asType(), target.element.asType()))
-//    fun recursion(tree: TypeStateTree, target: Class): TypeStateTree {
-//        if (target == tree.c) return tree
-//        val superC = sup(tree.c)
-//        return when {
-//            tree.c is LinearClass && superC is LinearClass ->
-//                ucastTT(TypeStateTree(superC, ucast(tree.t, tree.c, superC), listOf(tree)), target)
-//            else -> ucastTT(TypeStateTree(superC, Top, listOf(tree)), target)
-//        }
-//    }
-//    return recursion(tree, target)
-//}
-//fun dcastTT(tree: TypeStateTree, target: Class): TypeStateTree {
-//    require(Java.types.isSubtype(target.element.asType(), tree.c.element.asType()))
-//    fun recursion(tree: TypeStateTree, target: Class): TypeStateTree {
-//        val closest = closestTT(tree, target)
-//        return if (target == closest.c) closest
-//        else when {
-//            closest.c is LinearClass && target is LinearClass ->
-//                TypeStateTree(target, dcast(closest.t, closest.c, target))
-//            else -> ...
-//        }
-//    }
-//    return recursion(tree, target)
-//}
-//fun closestTT(tree: TypeStateTree, c: Class): TypeStateTree {
-//    require(!Java.types.isSubtype(c.element.asType(), tree.c.element.asType()))
-//    fun recursion(tree: TypeStateTree, c: Class): TypeStateTree {
-//        val subTree = tree.children.find { Java.types.isSubtype(c.element.asType(), it.c.element.asType()) }
-//        if (subTree != null) return recursion(subTree, c)
-//        return tree
-//    }
-//    return recursion(tree, c)
-//}
-//fun evoTTI(tree: TypeStateTree, mt: Method): TypeStateTree =
-//    TypeStateTree(
-//        tree.c,
-//        evoI(tree.t, mt),
-//        tree.children.map { child -> evoTTI(child, mt) }
-//    )
-//fun evoTTO(tree: TypeStateTree, l: String): TypeStateTree =
-//    TypeStateTree(
-//        tree.c,
-//        evoO(tree.t, l),
-//        tree.children.map { child -> evoTTO(child, l) }
-//    )
-//fun resolveTT(tree: TypeStateTree): TypeStateTree =
-//    TypeStateTree(
-//        tree.c,
-//        resolve(tree.t),
-//        tree.children.map { child -> resolveTT(child) }
-//    )
+fun closestTT(tree: TypeStateTree, c: JavaClass): TypeStateTree =
+    when(val subTree = tree.children.find { c isSubClassOf it.clazz }) {
+        null -> tree
+        else -> closestTT(subTree, c)
+    }
+
+fun evoTTI(tree: TypeStateTree, mt: JavaMethod): TypeStateTree =
+    TypeStateTree(
+        tree.clazz,
+        evoI(tree.type, mt),
+        tree.children.map { child -> evoTTI(child, mt) }
+    )
+
+fun evoTTO(tree: TypeStateTree, l: String): TypeStateTree =
+    TypeStateTree(
+        tree.clazz,
+        evoO(tree.type, l),
+        tree.children.map { child -> evoTTO(child, l) }
+    )
+
+fun resolveTT(tree: TypeStateTree): TypeStateTree =
+    TypeStateTree(
+        tree.clazz,
+        resolve(tree.type),
+        tree.children.map { child -> resolveTT(child) }
+    )
 //fun mergeTT(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree {
 //    require(tree1.c == tree2.c)
 //    fun recursion(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree =

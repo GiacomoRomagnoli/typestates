@@ -1,5 +1,7 @@
 package language.model
 
+import language.types.ClassType
+import language.types.T
 import protocol.model.Protocol
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -14,6 +16,8 @@ class JavaClass(
     private val typeUtils: Types,
     private val elementUtils: Elements,
 ) {
+    infix fun isSubClassOf(other: JavaClass) = typeUtils.isSubtype(element.asType(), other.element.asType())
+    infix fun at(t: T) = ClassType(this, t, typeUtils)
     val superclass by lazy {
         (typeUtils.asElement(element.superclass) as? TypeElement)?.let { program[it.qualifiedName.toString()] }
     }
