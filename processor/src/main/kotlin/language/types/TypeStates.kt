@@ -76,7 +76,7 @@ fun evoI(t: T, mt: JavaMethod): T = when(t) {
     is U -> when(val w = t.state[mt.sign]) {
         is OutPutState -> O(w)
         is TypeState -> U(w)
-        null -> Top
+        null -> t
     }
     else -> Top
 }
