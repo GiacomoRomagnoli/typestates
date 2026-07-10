@@ -38,7 +38,7 @@ fun ucastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
         val head =
             if (superclass.isLinear) TypeStateTree(superclass, ucast(tree.type, tree.clazz, superclass), listOf(tree))
             else TypeStateTree(superclass, Top, listOf(tree))
-        return ucastTT(head, target)
+        return rec(head, target)
     }
     return rec(tree, target)
 }
