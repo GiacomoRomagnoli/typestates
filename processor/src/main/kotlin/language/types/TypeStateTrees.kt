@@ -85,20 +85,24 @@ fun mergeTT(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree {
         TypeStateTree(
             tree1.clazz,
             tree1.type and tree2.type,
-            tree1.children.mapNotNull { child ->
-                tree2.children.find { child.clazz == it.clazz }?.let { mergeTT(child, it) }
-            }
+            clss(tree1).intersect(clss(tree2))
+                .map { rec(find(tree1, it)!!, find(tree2, it)!!) },
         )
     return rec(tree1, tree2)
 }
 
-infix fun TypeStateTree.sub(other: TypeStateTree): Boolean {
-    if (!this.isWellFormed || !other.isWellFormed) return false
-    fun recursion(tree1: TypeStateTree, tree2: TypeStateTree): Boolean {
-        if (!(this.classType sub other.classType)) return false
-        if (!tree1.children.mapNotNull { child -> tree2.children.find { child.clazz == it.clazz }?.let { child to it } }.all { (t1, t2) -> t1 sub t2 }) return false
-        if (!tree2.children.filter { child -> tree1.children.find { it.clazz == child.clazz } == null }.all { dcastTT(tree1, it.clazz) sub it}) return false
-        return true
-    }
-    return if (this.clazz == other.clazz) recursion(this, other) else recursion(this, dcastTT(other, this.clazz))
-}
+infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
+    if (this.isWellFormed && other.isWellFormed) {
+        if (this.clazz != other.clazz && this.clazz isSubClassOf other.clazz) {
+            this sub dcastTT(other, this.clazz)
+        } else {
+            val intersection = clss(this).intersect(clss(other))
+            val subtraction = clss(other) - intersection
+            this.classType sub other.classType &&
+            intersection.all { find(this, it)!! sub find(other, it)!!} &&
+            subtraction.all { dcastTT(this, it) sub find(other, it)!! }
+        }
+    } else false
+
+fun clss(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet()
+fun find(tree: TypeStateTree, c: JavaClass) = tree.children.find { it.clazz == c }
