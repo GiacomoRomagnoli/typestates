@@ -1,11 +1,17 @@
 package rules
 
 import language.model.JavaClass
+import language.model.JavaMethod
 import language.types.EnumType
 import language.types.PrimitiveTypes
+import protocol.model.Method
 import protocol.model.OutPutState
 
-data class Diagnostic(val message: String)
+sealed interface Diagnostic
+data class MissingMethod(val method: Method) : Diagnostic
+data class NonExhaustiveOutPutState(val outputState: OutPutState, val labels: List<String>) : Diagnostic
+data class UnexpectedOutPutState(val outputState: OutPutState) : Diagnostic
+data class InvalidOverride(val overrider: JavaMethod, val overridden: JavaMethod) : Diagnostic
 
 fun chkProt(clazz: JavaClass): List<Diagnostic> {
     require(clazz.isLinear)
@@ -16,13 +22,17 @@ fun chkProt(clazz: JavaClass): List<Diagnostic> {
             val state = transition.state
             if (state is OutPutState) {
                 when (val rt = jmt.returnType) {
-                    is EnumType -> if (rt.enum.labels != state.labels) diagnostics.add(Diagnostic(""))
-                    is PrimitiveTypes.Boolean -> if(rt.labels != state.labels) diagnostics.add(Diagnostic(""))
-                    else -> diagnostics.add(Diagnostic(""))
+                    is EnumType ->
+                        if (rt.enum.labels != state.labels)
+                            diagnostics.add(NonExhaustiveOutPutState(state, rt.enum.labels))
+                    is PrimitiveTypes.Boolean ->
+                        if(rt.labels != state.labels)
+                            diagnostics.add(NonExhaustiveOutPutState(state, rt.labels))
+                    else -> diagnostics.add(UnexpectedOutPutState(state))
                 }
             }
         } else {
-            diagnostics.add(Diagnostic(""))
+            diagnostics.add(MissingMethod(transition.method))
         }
     }
     return diagnostics
@@ -34,10 +44,10 @@ fun chkOvr(clazz: JavaClass, superclass: JavaClass): List<Diagnostic> {
         val overridden = superclass.allMeths.find { overrider overrides it }
         if (overridden != null) {
             if (!overrider.returnType.sub(overridden.returnType))
-                diagnostics.add(Diagnostic(""))
+                diagnostics.add(InvalidOverride(overrider, overridden))
            for (i in 0 until overrider.parametersType.size) {
                if (!overridden.parametersType[i].sub(overrider.parametersType[i]))
-                   diagnostics.add(Diagnostic(""))
+                   diagnostics.add(InvalidOverride(overrider, overridden))
            }
         }
     }
