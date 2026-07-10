@@ -1,5 +1,7 @@
+import annotations.Requires;
+
 public class CarService {
-    @Ensures({"ON"})
+    @annotations.Ensures({"ON"})
     Car start(@Requires({"OFF"}) Car car) {
         while(!car.turnOn()) {
             System.out.println("turning on...");
@@ -8,7 +10,7 @@ public class CarService {
         return car;
     }
 
-    @Ensures({"OFF"})
+    @annotations.Ensures({"OFF"})
     Car stop(@Requires({"ON"}) Car car) {
         car.setSpeed(0);
         car.turnOff();

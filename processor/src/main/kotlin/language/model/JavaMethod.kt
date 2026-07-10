@@ -1,5 +1,7 @@
 package language.model
 
+import annotations.Ensures
+import annotations.Requires
 import language.types.arrayLevel
 import language.types.resolve
 import protocol.model.JavaType

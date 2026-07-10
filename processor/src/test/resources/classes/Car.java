@@ -1,3 +1,5 @@
+import annotations.Typestate;
+
 import java.util.Random;
 
 @Typestate("protocols/car.protocol")

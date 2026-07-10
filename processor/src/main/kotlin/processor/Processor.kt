@@ -1,6 +1,8 @@
 package processor
 
-import Typestate
+import annotations.Ensures
+import annotations.Requires
+import annotations.Typestate
 import language.model.Program
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment

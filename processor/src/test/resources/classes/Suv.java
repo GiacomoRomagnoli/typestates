@@ -1,3 +1,5 @@
+import annotations.Typestate;
+
 @Typestate("protocols/suv.protocol")
 public class Suv extends Car {
     private Mode mode;
