@@ -10,7 +10,7 @@ import protocol.model.OutPutState
 sealed interface Diagnostic
 data class MissingMethod(val method: Method) : Diagnostic
 data class NonExhaustiveOutPutState(val outputState: OutPutState, val labels: List<String>) : Diagnostic
-data class UnexpectedOutPutState(val outputState: OutPutState) : Diagnostic
+data class UnexpectedOutPutState(val outputState: OutPutState, val method: JavaMethod) : Diagnostic
 data class InvalidOverride(val overrider: JavaMethod, val overridden: JavaMethod) : Diagnostic
 
 fun chkProt(clazz: JavaClass): List<Diagnostic> {
@@ -28,7 +28,7 @@ fun chkProt(clazz: JavaClass): List<Diagnostic> {
                     is PrimitiveTypes.Boolean ->
                         if(rt.labels != state.labels)
                             diagnostics.add(NonExhaustiveOutPutState(state, rt.labels))
-                    else -> diagnostics.add(UnexpectedOutPutState(state))
+                    else -> diagnostics.add(UnexpectedOutPutState(state, jmt))
                 }
             }
         } else {
