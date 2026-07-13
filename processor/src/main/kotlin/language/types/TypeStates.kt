@@ -34,6 +34,13 @@ val T.isResolved : Boolean
         is O -> false
         else -> true
     }
+val T.isTerminated : Boolean
+    get() = when (this) {
+        is Union -> t1.isTerminated && t2.isTerminated
+        is Intersection -> t1.isTerminated || t2.isTerminated
+        is U -> state.isEnd || state.isDroppable
+        else -> false
+    }
 infix fun T.sub(other: T): Boolean = when {
     this is Bottom -> true
     other is Top -> true
