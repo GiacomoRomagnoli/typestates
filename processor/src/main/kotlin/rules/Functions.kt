@@ -23,10 +23,10 @@ fun chkProt(clazz: JavaClass): List<Diagnostic> {
             if (state is OutPutState) {
                 when (val rt = jmt.returnType) {
                     is EnumType ->
-                        if (rt.enum.labels != state.labels)
+                        if (!rt.enum.labels.containsAll(state.labels))
                             diagnostics.add(NonExhaustiveOutPutState(state, rt.enum.labels))
                     is PrimitiveTypes.Boolean ->
-                        if(rt.labels != state.labels)
+                        if(!rt.labels.containsAll(state.labels))
                             diagnostics.add(NonExhaustiveOutPutState(state, rt.labels))
                     else -> diagnostics.add(UnexpectedOutPutState(state, jmt))
                 }
