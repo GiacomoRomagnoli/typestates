@@ -52,7 +52,7 @@ infix fun T.sub(other: T): Boolean = when {
     this is Null -> other is Null
     this is Und -> other is Und
     this is U -> when (other) {
-        is Shared, is Null, is Und -> this.state.isEnd
+        is Shared, is Null, is Und -> this.state.isEnd || this.state.isDroppable
         is U -> this.state simulates other.state
         else -> false
     }

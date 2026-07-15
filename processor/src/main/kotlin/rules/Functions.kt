@@ -1,55 +1,44 @@
 package rules
 
 import language.model.JavaClass
-import language.model.JavaMethod
+import language.types.Bool
+import language.types.ClassType
 import language.types.EnumType
-import language.types.PrimitiveTypes
-import protocol.model.Method
+import language.types.sub
 import protocol.model.OutPutState
 
-sealed interface Diagnostic
-data class MissingMethod(val method: Method) : Diagnostic
-data class NonExhaustiveOutPutState(val outputState: OutPutState, val labels: List<String>) : Diagnostic
-data class UnexpectedOutPutState(val outputState: OutPutState, val method: JavaMethod) : Diagnostic
-data class InvalidOverride(val overrider: JavaMethod, val overridden: JavaMethod) : Diagnostic
-
-fun chkProt(clazz: JavaClass): List<Diagnostic> {
+fun chkProt(clazz: JavaClass): Boolean {
     require(clazz.isLinear)
-    val diagnostics = mutableListOf<Diagnostic>()
     for (transition in clazz.protocol!!.transitions) {
         val jmt = clazz.allMeths.find { it.sign == transition.method }
         if (jmt != null) {
             val state = transition.state
             if (state is OutPutState) {
-                when (val rt = jmt.returnType) {
-                    is EnumType ->
-                        if (!rt.enum.labels.containsAll(state.labels))
-                            diagnostics.add(NonExhaustiveOutPutState(state, rt.enum.labels))
-                    is PrimitiveTypes.Boolean ->
-                        if(!rt.labels.containsAll(state.labels))
-                            diagnostics.add(NonExhaustiveOutPutState(state, rt.labels))
-                    else -> diagnostics.add(UnexpectedOutPutState(state, jmt))
-                }
+                val rt = jmt.rt
+                return if (rt is EnumType && !rt.enum.labels.containsAll(state.labels)) false
+                else if (rt is Bool && !rt.labels.containsAll(state.labels)) false
+                else false
             }
-        } else {
-            diagnostics.add(MissingMethod(transition.method))
-        }
+        } else return false
     }
-    return diagnostics
+    return true
 }
 
-fun chkOvr(clazz: JavaClass, superclass: JavaClass): List<Diagnostic> {
-    val diagnostics = mutableListOf<Diagnostic>()
+fun chkOvr(clazz: JavaClass, superclass: JavaClass): Boolean {
     for (overrider in clazz.meths) {
         val overridden = superclass.allMeths.find { overrider overrides it }
         if (overridden != null) {
-            if (!overrider.returnType.sub(overridden.returnType))
-                diagnostics.add(InvalidOverride(overrider, overridden))
-           for (i in 0 until overrider.parametersType.size) {
-               if (!overridden.parametersType[i].sub(overrider.parametersType[i]))
-                   diagnostics.add(InvalidOverride(overrider, overridden))
+            val overriderRt = overrider.rt
+            val overriddenRt = overridden.rt
+            if (overriderRt is ClassType && overriddenRt is ClassType && !(overriderRt sub overriddenRt))
+                return false
+           for (i in 0 until overrider.pt.size) {
+               val overriderPT = overrider.pt[i]
+               val overriddenPT = overridden.pt[i]
+               if (overriderPT is ClassType && overriddenPT is ClassType && !(overriddenPT sub overriderPT))
+                   return false
            }
         }
     }
-    return diagnostics
+    return true
 }

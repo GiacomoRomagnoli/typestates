@@ -17,7 +17,7 @@ class JavaClass(
     private val elementUtils: Elements,
 ) {
     infix fun isSubClassOf(other: JavaClass) = typeUtils.isSubtype(element.asType(), other.element.asType())
-    infix fun at(t: T) = ClassType(this, t, typeUtils)
+    infix fun at(t: T) = ClassType(this, t)
     val superclass by lazy {
         (typeUtils.asElement(element.superclass) as? TypeElement)?.let { program[it.qualifiedName.toString()] }
     }

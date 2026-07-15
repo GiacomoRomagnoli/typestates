@@ -3,20 +3,19 @@ package language.types
 import language.model.JavaClass
 import language.model.JavaMethod
 
-data class TypeStateTree(val classType: ClassType, val children: List<TypeStateTree> = emptyList()) {
+data class TypeStateTree(val classType: ClassType, val children: List<TypeStateTree> = emptyList()) : TC {
     constructor(clazz: JavaClass, type: T, children: List<TypeStateTree> = emptyList())
             : this(clazz at type, children)
 
     val clazz = classType.clazz
     val type = classType.type
-    private val nodup = children.map { it.clazz }.toSet().size == children.size
     val isWellFormed: Boolean by lazy {
         if (clazz.isLinear)
             typestates(type).all { it in clazz.protocol!!.protSt }
         else
             typestates(type).isEmpty()
         &&
-        nodup &&
+        nodup(this) &&
         children.all { child ->
             child.clazz.superclass == clazz &&
             child.isWellFormed &&
@@ -113,4 +112,9 @@ infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
     } else false
 
 fun clss(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet()
+
 fun find(tree: TypeStateTree, c: JavaClass) = tree.children.find { it.clazz == c }
+
+fun term(tree: TypeStateTree) = tree.classType sub (tree.clazz at Und)
+
+fun nodup(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet().size == tree.children.size

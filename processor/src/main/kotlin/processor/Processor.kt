@@ -7,9 +7,6 @@ import ast.parse
 import language.model.JavaClass
 import language.model.Program
 import protocol.compile
-import rules.MissingMethod
-import rules.NonExhaustiveOutPutState
-import rules.UnexpectedOutPutState
 import rules.chkOvr
 import rules.chkProt
 import javax.annotation.processing.AbstractProcessor
@@ -29,12 +26,12 @@ class Processor: AbstractProcessor() {
     )
 
     override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        roundEnv.classes.forEach { program.add(JavaClassOf(it)) }
+        roundEnv.classes.forEach { program.add(javaClassOf(it)) }
         for(clazz in program.allClasses) {
             if (clazz.isLinear)
-                chkProt(clazz).forEach { emitError(it.msg) }
+                chkProt(clazz)
             if (clazz.superclass != null)
-                chkOvr(clazz, clazz.superclass!!).forEach { emitError(it.msg) }
+                chkOvr(clazz, clazz.superclass!!)
         }
         return true
     }
@@ -55,7 +52,7 @@ class Processor: AbstractProcessor() {
             compilation.protocol
         }
 
-    private fun JavaClassOf(element: TypeElement) =
+    private fun javaClassOf(element: TypeElement) =
         JavaClass(
             element,
             loadProtocol(element),
@@ -65,15 +62,4 @@ class Processor: AbstractProcessor() {
         )
 
     private fun emitError(msg: String) = processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, msg)
-
-    private val rules.Diagnostic.msg
-        get() = when (this) {
-            is MissingMethod ->
-                "missing method ${this.method.simpleName}"
-            is NonExhaustiveOutPutState ->
-                "not exhaustive output state expected: ${this.labels} actual: ${this.outputState.labels}"
-            is UnexpectedOutPutState ->
-                "unexpected output state for method ${this.method.sign.simpleName}"
-            else -> "chkOvr fails"
-        }
 }

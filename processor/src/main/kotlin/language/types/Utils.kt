@@ -23,10 +23,10 @@ fun TypeMirror.arrayLevel(): Int {
 
 fun TypeMirror.resolve(typeUtils: Types, elementUtils: Elements, annotation: Array<String>?, program: Program) =
     when (this.kind) {
-        TypeKind.BOOLEAN ->  PrimitiveTypes.Boolean
-        TypeKind.INT ->  PrimitiveTypes.Int
-        TypeKind.DOUBLE ->  PrimitiveTypes.Double
-        TypeKind.VOID ->  PrimitiveTypes.Void
+        TypeKind.BOOLEAN ->  Bool
+        TypeKind.INT -> Integer
+        TypeKind.DOUBLE ->  Double
+        TypeKind.VOID ->  Void
         TypeKind.DECLARED -> {
             val typeElement = typeUtils.asElement(this) as TypeElement
             val javaClass = program[typeElement.qualifiedName.toString()]
@@ -40,12 +40,12 @@ fun TypeMirror.resolve(typeUtils: Types, elementUtils: Elements, annotation: Arr
                         } else {
                             ClassType(
                                 javaClass,
-                                type.map { U(it!!) as T }.reduce { t1, t2 -> t1 and t2 },
-                                typeUtils,
+                                type.map { U(it!!) as T }.reduceOrNull { t1, t2 -> t1 and t2 }
+                                    ?: return@let ErrorType("empty type")
                             )
                         }
-                    } ?: ClassType(javaClass, Null, typeUtils)
-                ElementKind.ENUM -> EnumType(JavaEnum(typeElement), typeUtils)
+                    } ?: ClassType(javaClass, Null)
+                ElementKind.ENUM -> EnumType(JavaEnum(typeElement))
                 else -> ErrorType("not implemented type")
             }
         }

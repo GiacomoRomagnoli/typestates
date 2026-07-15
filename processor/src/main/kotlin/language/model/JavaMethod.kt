@@ -2,6 +2,7 @@ package language.model
 
 import annotations.Ensures
 import annotations.Requires
+import language.types.PT
 import language.types.arrayLevel
 import language.types.resolve
 import protocol.model.JavaType
@@ -34,15 +35,15 @@ class JavaMethod(
             }
         )
     }
-    val returnType by lazy {
+    val rt by lazy {
         val annotation = element.getAnnotation(Ensures::class.java)?.value
         element.returnType.resolve(typeUtils, elementUtils, annotation, program)
     }
-    // forse servono anche i parametri
-    val parametersType by lazy {
+
+    val pt by lazy {
         element.parameters.map { parameter ->
             val annotation = parameter.getAnnotation(Requires::class.java)?.value
-            parameter.asType().resolve(typeUtils, elementUtils, annotation, program)
+            parameter.asType().resolve(typeUtils, elementUtils, annotation, program) as PT
         }
     }
 }
