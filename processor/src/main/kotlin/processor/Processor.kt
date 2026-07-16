@@ -29,9 +29,11 @@ class Processor: AbstractProcessor() {
         roundEnv.classes.forEach { program.add(javaClassOf(it)) }
         for(clazz in program.allClasses) {
             if (clazz.isLinear)
-                chkProt(clazz)
+                if(!chkProt(clazz))
+                    emitError("chkProt failed for ${clazz.qualifiedName}")
             if (clazz.superclass != null)
-                chkOvr(clazz, clazz.superclass!!)
+                if(!chkOvr(clazz, clazz.superclass!!))
+                    emitError("chkOvr failed for ${clazz.qualifiedName}")
         }
         return true
     }
