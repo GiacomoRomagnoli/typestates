@@ -115,6 +115,4 @@ fun clss(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet()
 
 fun find(tree: TypeStateTree, c: JavaClass) = tree.children.find { it.clazz == c }
 
-fun term(tree: TypeStateTree) = tree.classType sub (tree.clazz at Und)
-
 fun nodup(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet().size == tree.children.size
