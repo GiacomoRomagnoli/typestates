@@ -14,10 +14,11 @@ fun chkProt(clazz: JavaClass): Boolean {
         if (jmt != null) {
             val state = transition.state
             if (state is OutPutState) {
-                val rt = jmt.rt
-                return if (rt is EnumType && !rt.enum.labels.containsAll(state.labels)) false
-                else if (rt is Bool && !rt.labels.containsAll(state.labels)) false
-                else false
+                when (val rt = jmt.rt) {
+                    is EnumType -> if (!rt.enum.labels.containsAll(state.labels)) return false
+                    is Bool -> if (!rt.labels.containsAll(state.labels)) return false
+                    else -> return false
+                }
             }
         } else return false
     }
