@@ -5,6 +5,7 @@ import annotations.Requires
 import annotations.Typestate
 import ast.parse
 import language.model.JavaClass
+import language.model.JavaModelContext
 import language.model.Program
 import protocol.compile
 import rules.chkOvr
@@ -54,14 +55,11 @@ class Processor: AbstractProcessor() {
             compilation.protocol
         }
 
-    private fun javaClassOf(element: TypeElement) =
-        JavaClass(
-            element,
-            loadProtocol(element),
-            program,
-            processingEnv.typeUtils,
-            processingEnv.elementUtils
-        )
+    private val ctx = JavaModelContext.from(processingEnv)
 
-    private fun emitError(msg: String) = processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, msg)
+    private fun javaClassOf(element: TypeElement) =
+        JavaClass(element,loadProtocol(element), program, ctx)
+
+    private fun emitError(msg: String) =
+        processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, msg)
 }
