@@ -1,35 +1,38 @@
 package rules.dsl
 
-class RuleScope<I, P : Any, O> {
-    private val matches = mutableListOf<I.() -> Boolean>()
+typealias Premise<I, P> = I.() -> P
+class PremiseFailure : RuntimeException(null, null, false, false)
+
+class RuleScope<I, P, O> {
     private var premise: Premise<I, P>? = null
-    private var conclusion: (I.(P) -> O)? = null
+    private var conclusion: Conclusion<I, P, O>? = null
 
-    fun match(block: I.() -> Boolean) { matches += block }
+    fun fail(): Nothing = throw PremiseFailure()
 
-    fun premise(block: PremiseScope<I, P>.() -> Unit) {
+    fun ensure(condition: Boolean) { if (!condition) fail() }
+
+    fun premise(block: Premise<I, P>) {
         check(premise == null)
-        premise = PremiseScope<I, P>().apply(block).build()
+        premise = block
     }
 
-    fun conclusion(block: I.(P) -> O) {
+    fun conclusion(block: ConclusionScope<I, P, O>.() -> Unit) {
         check(conclusion == null)
-        conclusion = block
+        conclusion = ConclusionScope<I, P, O>().apply(block).build()
     }
 
-    internal fun build(name: String): Rule<I, O> =
-        Rule(name) { input -> evaluate(input) }
-
-    private fun evaluate(input: I): RuleResult<O> {
-        if (matches.any { !input.it() }) return RuleResult.NotApplicable
-        val premise = premise ?: return RuleResult.Failure("missing premise")
-        val conclusion = conclusion ?: return RuleResult.Failure("missing conclusion")
-
-        return when (val result = premise(input)) {
-            is RuleResult.Success ->
-                RuleResult.Success(input.conclusion(result.value))
-            is RuleResult.Failure -> result
-            RuleResult.NotApplicable -> RuleResult.NotApplicable
+    // TODO: pensare a come propagare l'errore per debuggare
+    internal fun build(name: String): Rule<I, O> {
+        checkNotNull(premise)
+        checkNotNull(conclusion)
+        return Rule(name) { input ->
+            if (!conclusion!!.left(input)) RuleResult.Failure
+            else try {
+                val p = premise!!.invoke(input)
+                RuleResult.Success(conclusion!!.right(input, p))
+            } catch (e: PremiseFailure) {
+                RuleResult.Failure
+            }
         }
     }
 }

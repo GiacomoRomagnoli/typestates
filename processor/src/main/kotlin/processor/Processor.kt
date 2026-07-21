@@ -4,6 +4,7 @@ import annotations.Ensures
 import annotations.Requires
 import annotations.Typestate
 import ast.parse
+import com.sun.source.util.Trees
 import language.model.JavaClass
 import language.model.JavaModelContext
 import language.model.Program
@@ -18,7 +19,7 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 
 class Processor: AbstractProcessor() {
-    val program = Program()
+    val program = Program(processingEnv.elementUtils, Trees.instance(processingEnv))
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(
         Ensures::class.java.canonicalName,

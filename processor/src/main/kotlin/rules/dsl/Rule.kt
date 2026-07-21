@@ -1,6 +1,6 @@
 package rules.dsl
 
-class Rule<I, O>(
+class Rule<in I, out O>(
     val name: String,
     private val body: (I) -> RuleResult<O>
 ) {
@@ -9,7 +9,6 @@ class Rule<I, O>(
 }
 
 sealed interface RuleResult<out O> {
-    data object NotApplicable : RuleResult<Nothing>
     data class Success<O>(val value: O) : RuleResult<O>
-    data class Failure(val error: String) : RuleResult<Nothing>
+    data object Failure : RuleResult<Nothing>
 }

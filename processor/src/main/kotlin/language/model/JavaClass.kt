@@ -18,6 +18,11 @@ class JavaClass(
     val superclass by lazy {
         (ctx.types.asElement(element.superclass) as? TypeElement)?.let { program[it.qualifiedName.toString()] }
     }
+    val constructors by lazy {
+        element.enclosedElements
+            .filter { it.kind == ElementKind.CONSTRUCTOR }
+            .map { JavaConstructor(it as ExecutableElement, program, ctx) }
+    }
     val meths by lazy {
         element.enclosedElements
             .filter { it.kind == ElementKind.METHOD }
