@@ -1,5 +1,6 @@
 package language.types
 
+import language.model.ClassRef
 import language.model.JavaClass
 import language.model.JavaMethod
 import protocol.model.OutPutState
@@ -65,13 +66,13 @@ fun typestates(t: T): Set<State> = when(t) {
     is O -> setOf(t.state)
     else -> emptySet()
 }
-fun ucast(t: T, c1: JavaClass, c2: JavaClass): T = when(t) {
+fun ucast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
     is Union -> ucast(t.t1, c1, c2) and ucast(t.t2, c1, c2)
     is Intersection -> ucast(t.t1, c1, c2) or ucast(t.t2, c1, c2)
     is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { t sub it }.reduceOrNull { t1, t2 -> t1 or t2 } ?: Top
     else -> t
 }
-fun dcast(t: T, c1: JavaClass, c2: JavaClass): T = when(t) {
+fun dcast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
     is Union -> dcast(t.t1, c1, c2) and dcast(t.t2, c1, c2)
     is Intersection -> dcast(t.t1, c1, c2) or dcast(t.t2, c1, c2)
     is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { it sub t }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Bottom

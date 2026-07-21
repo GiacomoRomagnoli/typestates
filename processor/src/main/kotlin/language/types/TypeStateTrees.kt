@@ -1,34 +1,37 @@
 package language.types
 
+import language.model.BottomClass
+import language.model.ClassRef
 import language.model.JavaClass
 import language.model.JavaMethod
+import language.model.at
+import language.model.isSubClassOf
 
 data class TypeStateTree(val classType: ClassType, val children: List<TypeStateTree> = emptyList()) : TC {
-    constructor(clazz: JavaClass, type: T, children: List<TypeStateTree> = emptyList())
+    constructor(clazz: ClassRef, type: T, children: List<TypeStateTree> = emptyList())
             : this(clazz at type, children)
 
-    val clazz = classType.clazz
-    val type = classType.type
+    val clazz get() =  classType.clazz
+    val type get() = classType.type
     val isWellFormed: Boolean by lazy {
-        if (clazz.isLinear)
-            typestates(type).all { it in clazz.protocol!!.protSt }
-        else
-            typestates(type).isEmpty()
-        &&
+        classType.isWellFormed &&
         nodup(this) &&
-        children.all { child ->
-            child.clazz.superclass == clazz &&
-            child.isWellFormed &&
-            if (child.type.isResolved)
-                child.classType sub classType
-            else
-                child.type.labels.all { l ->
-                    (child.clazz at evoO(child.type, l)) sub (clazz at evoO(type, l))
-                }
+        when(clazz) {
+            is BottomClass -> children.isEmpty()
+            is JavaClass -> children.all { child ->
+                child.clazz.superclass == clazz &&
+                child.isWellFormed &&
+                if (child.type.isResolved)
+                    child.classType sub classType
+                else
+                    child.type.labels.all { l ->
+                        (child.clazz at evoO(child.type, l)) sub (clazz at evoO(type, l))
+                    }
+            }
         }
     }
 }
-
+fun tt(c: ClassRef, t: T, vararg children: TypeStateTree) = TypeStateTree(c, t, children.toList())
 fun ucastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
     require(tree.clazz isSubClassOf target)
     fun rec(tree: TypeStateTree, target: JavaClass): TypeStateTree {
@@ -50,14 +53,14 @@ fun ucastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
     return rec(tree, target)
 }
 
-fun dcastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
+fun dcastTT(tree: TypeStateTree, target: ClassRef): TypeStateTree {
     require(target isSubClassOf tree.clazz)
     val closest = closestTT(tree, target)
     return if (target == closest.clazz) closest
     else TypeStateTree(target, dcast(closest.type, closest.clazz, target))
 }
 
-fun closestTT(tree: TypeStateTree, c: JavaClass): TypeStateTree {
+fun closestTT(tree: TypeStateTree, c: ClassRef): TypeStateTree {
     require(c isSubClassOf tree.clazz)
     return when (val subTree = tree.children.find { c isSubClassOf it.clazz }) {
         null -> tree
@@ -113,6 +116,6 @@ infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
 
 fun clss(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet()
 
-fun find(tree: TypeStateTree, c: JavaClass) = tree.children.find { it.clazz == c }
+fun find(tree: TypeStateTree, c: ClassRef) = tree.children.find { it.clazz == c }
 
 fun nodup(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet().size == tree.children.size

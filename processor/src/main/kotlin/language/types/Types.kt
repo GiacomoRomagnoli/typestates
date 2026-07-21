@@ -1,7 +1,10 @@
 package language.types
 
+import language.model.ClassRef
 import language.model.JavaClass
 import language.model.JavaEnum
+import language.model.at
+import language.model.isSubClassOf
 
 /**
  * interface that represents a type of the type checker
@@ -35,7 +38,7 @@ data class EnumType(val enum: JavaEnum, val und: Boolean = false) : PT, TC
 
 data class ErrorType(val message: String) : PT
 
-data class ClassType(val clazz: JavaClass, val type: T): PT {
+data class ClassType(val clazz: ClassRef, val type: T): PT {
     val isWellFormed by lazy {
         if (clazz.isLinear)
             typestates(type).all { it in clazz.protocol!!.protIn }

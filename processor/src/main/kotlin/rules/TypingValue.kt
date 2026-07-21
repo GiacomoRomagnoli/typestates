@@ -4,12 +4,15 @@ import com.sun.source.tree.ExpressionTree
 import com.sun.source.tree.ImportTree
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.Tree.Kind.*
+import language.model.BottomClass
 import language.model.Program
 import language.types.Bool
 import language.types.Double
 import language.types.EnumType
 import language.types.Integer
+import language.types.Null
 import language.types.TC
+import language.types.tt
 import rules.dsl.Judgement
 
 data class Value(
@@ -57,4 +60,9 @@ val TEnumVal = typingValue.rule("TEnumVal") {
         enum
     }
     conclusion { left { value is MemberSelectTree } ; right { EnumType(it) } }
+}
+
+val TNull = typingValue.rule("TNull") {
+    premise {  }
+    conclusion { left { value.kind ==  NULL_LITERAL} ; right { tt(BottomClass, Null) }}
 }
