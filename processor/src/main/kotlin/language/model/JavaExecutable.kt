@@ -21,7 +21,7 @@ abstract class JavaExecutable(
     val pt by lazy {
         element.parameters.map { parameter ->
             val annotation = parameter.getAnnotation(Requires::class.java)?.value
-            parameter.asType().resolve(ctx.types, ctx.elements, annotation, program) as PT
+            parameter.asType().resolve(ctx, annotation, program) as PT
         }
     }
 }

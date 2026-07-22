@@ -1,4 +1,4 @@
-package rules
+package rules.utils
 
 import language.model.JavaClass
 import language.types.Bool

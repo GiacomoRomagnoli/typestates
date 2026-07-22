@@ -9,8 +9,8 @@ import language.model.JavaClass
 import language.model.JavaModelContext
 import language.model.Program
 import protocol.compile
-import rules.chkOvr
-import rules.chkProt
+import rules.utils.chkOvr
+import rules.utils.chkProt
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.element.ElementKind

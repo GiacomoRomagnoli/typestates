@@ -2,14 +2,13 @@ package language.types
 
 import language.model.JavaClass
 import language.model.JavaEnum
+import language.model.JavaModelContext
 import language.model.Program
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
-import javax.lang.model.util.Elements
-import javax.lang.model.util.Types
 
 fun TypeMirror.arrayLevel(): Int {
     var current = this
@@ -21,16 +20,16 @@ fun TypeMirror.arrayLevel(): Int {
     return arrayLevel
 }
 
-fun TypeMirror.resolve(typeUtils: Types, elementUtils: Elements, annotation: Array<String>?, program: Program) =
+fun TypeMirror.resolve(ctx: JavaModelContext, annotation: Array<String>?, program: Program) =
     when (this.kind) {
         TypeKind.BOOLEAN ->  Bool
         TypeKind.INT -> Integer
         TypeKind.DOUBLE ->  Double
         TypeKind.VOID ->  Void
         TypeKind.DECLARED -> {
-            val typeElement = typeUtils.asElement(this) as TypeElement
+            val typeElement = ctx.types.asElement(this) as TypeElement
             val javaClass = program[typeElement.qualifiedName.toString()]
-                ?: JavaClass(typeElement, null, program, typeUtils, elementUtils)
+                ?: JavaClass(typeElement, null, program, ctx)
             when (typeElement.kind) {
                 ElementKind.CLASS -> annotation
                     ?.let { value ->

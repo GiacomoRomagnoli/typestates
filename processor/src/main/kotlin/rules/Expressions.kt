@@ -3,7 +3,7 @@ package rules
 import com.sun.source.tree.ExpressionTree
 import language.model.Program
 import language.types.TC
-import rules.dsl.Judgement
+import language.types.TypeEnv
 
 object Expression {
     data class Left(
@@ -20,5 +20,3 @@ object Expression {
         val variables: TypeEnv
     )
 }
-
-val typingExpression = Judgement<Expression.Left, Expression.Right>()

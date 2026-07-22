@@ -32,6 +32,6 @@ class JavaMethod(
     }
     val rt by lazy {
         val annotation = element.getAnnotation(Ensures::class.java)?.value
-        element.returnType.resolve(ctx.types, ctx.elements, annotation, program)
+        element.returnType.resolve(ctx, annotation, program)
     }
 }

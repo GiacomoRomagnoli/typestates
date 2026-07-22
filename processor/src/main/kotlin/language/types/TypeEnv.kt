@@ -1,12 +1,6 @@
-package rules
+package language.types
 
 import language.model.JavaClass
-import language.types.TC
-import language.types.TypeStateTree
-import language.types.evoTTO
-import language.types.mergeTC
-import language.types.resolveTT
-import language.types.term
 
 sealed class Cid { abstract val id: String }
 data class FieldId(val c: JavaClass, override val id: String) : Cid()
