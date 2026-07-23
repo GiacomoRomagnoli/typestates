@@ -31,66 +31,69 @@ data class TypeStateTree(val classType: ClassType, val children: List<TypeStateT
         }
     }
 }
+
 fun tt(c: ClassRef, t: T, vararg children: TypeStateTree) = TypeStateTree(c, t, children.toList())
-fun ucastTT(tree: TypeStateTree, target: JavaClass): TypeStateTree {
-    require(tree.clazz isSubClassOf target)
-    fun rec(tree: TypeStateTree, target: JavaClass): TypeStateTree {
-        if (target == tree.clazz) return tree
-        val superclass = tree.clazz.superclass ?: return tree
+fun tt(c: ClassRef, t: T, children: List<TypeStateTree>) = TypeStateTree(c, t, children)
+
+fun ucastTT(tt: TypeStateTree, target: JavaClass): TypeStateTree {
+    require(tt.clazz isSubClassOf target)
+    fun rec(tt: TypeStateTree, target: JavaClass): TypeStateTree {
+        if (target == tt.clazz) return tt
+        val superclass = tt.clazz.superclass ?: return tt
         val head =
             if (superclass.isLinear)
                 TypeStateTree(
                     superclass,
-                    ucast(tree.type, tree.clazz, superclass),
-                    listOf(tree)
+                    ucast(tt.type, tt.clazz, superclass),
+                    listOf(tt)
                 )
-            else if (tree.type.isTerminated)
-                TypeStateTree(superclass, Shared, listOf(tree))
+            else if (tt.type.isTerminated)
+                TypeStateTree(superclass, Shared, listOf(tt))
             else
-                TypeStateTree(superclass, Top, listOf(tree))
+                TypeStateTree(superclass, Top, listOf(tt))
         return rec(head, target)
     }
-    return rec(tree, target)
+    return rec(tt, target)
 }
 
-fun dcastTT(tree: TypeStateTree, target: ClassRef): TypeStateTree {
-    require(target isSubClassOf tree.clazz)
-    val closest = closestTT(tree, target)
+fun dcastTT(tt: TypeStateTree, target: ClassRef): TypeStateTree {
+    require(target isSubClassOf tt.clazz)
+    val closest = closestTT(tt, target)
     return if (target == closest.clazz) closest
     else TypeStateTree(target, dcast(closest.type, closest.clazz, target))
 }
 
-fun closestTT(tree: TypeStateTree, c: ClassRef): TypeStateTree {
-    require(c isSubClassOf tree.clazz)
-    return when (val subTree = tree.children.find { c isSubClassOf it.clazz }) {
-        null -> tree
+fun closestTT(tt: TypeStateTree, c: ClassRef): TypeStateTree {
+    require(c isSubClassOf tt.clazz)
+    return when (val subTree = tt.children.find { c isSubClassOf it.clazz }) {
+        null -> tt
         else -> closestTT(subTree, c)
     }
 }
 
-fun evoTTI(tree: TypeStateTree, mt: JavaMethod): TypeStateTree =
+fun evoTTI(tt: TypeStateTree, mt: JavaMethod): TypeStateTree =
     TypeStateTree(
-        tree.clazz,
-        evoI(tree.type, mt),
-        tree.children.map { child -> evoTTI(child, mt) }
+        tt.clazz,
+        evoI(tt.type, mt),
+        tt.children.map { child -> evoTTI(child, mt) }
     )
 
-fun evoTTO(tree: TypeStateTree, l: String): TypeStateTree =
+fun evoTTO(tt: TypeStateTree, l: String): TypeStateTree =
     TypeStateTree(
-        tree.clazz,
-        evoO(tree.type, l),
-        tree.children.map { child -> evoTTO(child, l) }
+        tt.clazz,
+        evoO(tt.type, l),
+        tt.children.map { child -> evoTTO(child, l) }
     )
 
-fun resolveTT(tree: TypeStateTree): TypeStateTree =
+fun resolveTT(tt: TypeStateTree): TypeStateTree =
     TypeStateTree(
-        tree.clazz,
-        resolve(tree.type),
-        tree.children.map { child -> resolveTT(child) }
+        tt.clazz,
+        resolve(tt.type),
+        tt.children.map { child -> resolveTT(child) }
     )
 
-fun mergeTT(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree {
-    require(tree1.clazz == tree2.clazz)
+fun mergeTT(tt1: TypeStateTree, tt2: TypeStateTree): TypeStateTree {
+    require(tt1.clazz == tt2.clazz)
     fun rec(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree =
         TypeStateTree(
             tree1.clazz,
@@ -98,7 +101,7 @@ fun mergeTT(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree {
             clss(tree1).intersect(clss(tree2))
                 .map { rec(find(tree1, it)!!, find(tree2, it)!!) },
         )
-    return rec(tree1, tree2)
+    return rec(tt1, tt2)
 }
 
 infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
@@ -114,8 +117,14 @@ infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
         }
     } else false
 
-fun clss(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet()
+fun invertTT(tt: TypeStateTree): TypeStateTree =
+    tt(tt.clazz, invert(tt.type), tt.children.map { invertTT(it) })
 
-fun find(tree: TypeStateTree, c: ClassRef) = tree.children.find { it.clazz == c }
+fun clss(tt: TypeStateTree) =
+    tt.children.map { it.clazz }.toSet()
 
-fun nodup(tree: TypeStateTree) = tree.children.map { it.clazz }.toSet().size == tree.children.size
+fun find(tt: TypeStateTree, c: ClassRef) =
+    tt.children.find { it.clazz == c }
+
+fun nodup(tt: TypeStateTree) =
+    tt.children.map { it.clazz }.toSet().size == tt.children.size

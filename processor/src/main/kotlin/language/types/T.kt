@@ -103,3 +103,9 @@ fun resolve(t: T): T = when(t) {
     is O -> t.state.typeStates.map { U(it) as T }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Top
     else -> t
 }
+fun invert(t: T): T = when(t) {
+    is Union -> invert(t.t1) and invert(t.t2)
+    is Intersection -> invert(t.t1) or invert(t.t2)
+    is O -> if (t.labels.all { it in Bool.labels }) O(!t.state) else t
+    else -> t
+}

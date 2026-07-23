@@ -4,6 +4,19 @@ class OutPutState internal constructor(
     private val protocol: Protocol,
     private val branches: Map<String, String>
 ) : State() {
+
+    operator fun not() =
+        OutPutState(
+            protocol,
+            branches.mapKeys { (k, _) ->
+                when (k) {
+                    "true" -> "false"
+                    "false" -> "true"
+                    else -> k
+                }
+            }
+        )
+
     operator fun get(label: String) =
         when (val ref = branches[label]) {
             null -> null
