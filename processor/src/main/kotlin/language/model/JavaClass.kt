@@ -5,7 +5,9 @@ import language.types.T
 import protocol.model.Protocol
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
+import javax.lang.model.element.VariableElement
 
 sealed interface ClassRef {
     val protocol: Protocol?
@@ -40,6 +42,15 @@ class JavaClass(
     override val protocol: Protocol? by lazy {
         declaredProtocol ?: superclass?.protocol
     }
+    val fields by lazy {
+        element.enclosedElements
+            .filter { it.kind == ElementKind.FIELD && Modifier.STATIC !in it.modifiers}
+            .map { JavaField(it as VariableElement, program, ctx) }
+    }
+
+    fun allF(fieldName: String): JavaClass? =
+        if(fields.firstOrNull { it.name == fieldName } != null) this else superclass?.allF(fieldName)
+
     val qualifiedName = element.qualifiedName.toString()
 }
 
