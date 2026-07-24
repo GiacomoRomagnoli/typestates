@@ -1,8 +1,8 @@
 package language.types
 
 import language.model.ClassRef
-import language.model.JavaClass
 import language.model.JavaMethod
+import protocol.model.Method
 import protocol.model.OutPutState
 import protocol.model.TypeState
 import protocol.model.State
@@ -11,16 +11,29 @@ sealed interface T
 
 data class Union(val t1: T, val t2: T): T
 data class Intersection(val t1: T, val t2: T): T
-data class O(val state: OutPutState): T
-data class U(val state: TypeState): T
+data class O(
+    val state: OutPutState,
+    private val f: O.(String) -> T? = { label -> state[label]?.let { U(it) }}
+): T {
+    operator fun get(label: String) = f(label)
+}
+data class U(val state: TypeState): T {
+    operator fun get(mt: Method) =
+        when (val w = state[mt]) {
+            is OutPutState -> O(w)
+            is TypeState -> U(w)
+            null -> null
+        }
+}
 data object Top: T
 data object Bottom: T
 data object Shared: T
 data object Null: T
 data object Und: T
 
-infix fun T.or(other: T) = Intersection(this, other)
-infix fun T.and(other: T) = Union(this, other)
+infix fun T.intersect(other: T) = Intersection(this, other)
+infix fun T.union(other: T) = Union(this, other)
+
 val T.labels: Set<String>
     get() = when (this) {
         is Union -> t1.labels + t2.labels
@@ -28,6 +41,7 @@ val T.labels: Set<String>
         is O -> state.labels
         else -> emptySet()
     }
+
 val T.isResolved : Boolean
     get() = when (this) {
         is Union -> t1.isResolved && t2.isResolved
@@ -35,6 +49,7 @@ val T.isResolved : Boolean
         is O -> false
         else -> true
     }
+
 val T.isTerminated : Boolean
     get() = when (this) {
         is Union -> t1.isTerminated && t2.isTerminated
@@ -42,6 +57,7 @@ val T.isTerminated : Boolean
         is U -> state.isEnd || state.isDroppable
         else -> false
     }
+
 infix fun T.sub(other: T): Boolean = when {
     this is Bottom -> true
     other is Top -> true
@@ -59,6 +75,7 @@ infix fun T.sub(other: T): Boolean = when {
     }
     else -> false
 }
+
 fun typestates(t: T): Set<State> = when(t) {
     is Union -> typestates(t.t1) + typestates(t.t2)
     is Intersection -> typestates(t.t1) + typestates(t.t2)
@@ -66,46 +83,53 @@ fun typestates(t: T): Set<State> = when(t) {
     is O -> setOf(t.state)
     else -> emptySet()
 }
+
 fun ucast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
-    is Union -> ucast(t.t1, c1, c2) and ucast(t.t2, c1, c2)
-    is Intersection -> ucast(t.t1, c1, c2) or ucast(t.t2, c1, c2)
-    is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { t sub it }.reduceOrNull { t1, t2 -> t1 or t2 } ?: Top
+    is Union -> ucast(t.t1, c1, c2) union ucast(t.t2, c1, c2)
+    is Intersection -> ucast(t.t1, c1, c2) intersect ucast(t.t2, c1, c2)
+    is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { t sub it }.reduceOrNull { t1, t2 -> t1 intersect t2 } ?: Top
     else -> t
 }
+
 fun dcast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
-    is Union -> dcast(t.t1, c1, c2) and dcast(t.t2, c1, c2)
-    is Intersection -> dcast(t.t1, c1, c2) or dcast(t.t2, c1, c2)
-    is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { it sub t }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Bottom
+    is Union -> dcast(t.t1, c1, c2) union dcast(t.t2, c1, c2)
+    is Intersection -> dcast(t.t1, c1, c2) intersect dcast(t.t2, c1, c2)
+    is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { it sub t }.reduceOrNull { t1, t2 -> t1 union t2 } ?: Bottom
     else -> t
 }
-fun evoI(t: T, mt: JavaMethod): T = when(t) {
-    is Union -> evoI(t.t1, mt) and evoI(t.t2, mt)
-    is Intersection -> evoI(t.t1, mt) or evoI(t.t2, mt)
-    is U -> when(val w = t.state[mt.sign]) {
-        is OutPutState -> O(w)
-        is TypeState -> U(w)
-        null -> t
+
+fun evoI(t: T, mt: JavaMethod): T =
+    when(t) {
+        is Union -> evoI(t.t1, mt) union evoI(t.t2, mt)
+        is Intersection -> evoI(t.t1, mt) intersect evoI(t.t2, mt)
+        is U -> t[mt.sign] ?: t
+        else -> Top
     }
-    else -> Top
-}
-fun evoO(t: T, l: String): T = when(t) {
-    is Union -> evoO(t.t1, l) and evoO(t.t2, l)
-    is Intersection -> evoO(t.t1, l) or evoO(t.t2, l)
-    is O -> when(val u = t.state[l]) {
-        is TypeState -> U(u)
-        null -> t
+
+fun evoO(t: T, l: String): T =
+    when(t) {
+        is Union -> evoO(t.t1, l) union evoO(t.t2, l)
+        is Intersection -> evoO(t.t1, l) intersect evoO(t.t2, l)
+        is O -> t[l] ?: t
+        else -> t
     }
-    else -> t
-}
+
 fun resolve(t: T): T = when(t) {
-    is Union -> resolve(t.t1) and resolve(t.t2)
-    is Intersection -> resolve(t.t1) or resolve(t.t2)
-    is O -> t.state.typeStates.map { U(it) as T }.reduceOrNull { t1, t2 -> t1 and t2 } ?: Top
+    is Union -> resolve(t.t1) union resolve(t.t2)
+    is Intersection -> resolve(t.t1) intersect resolve(t.t2)
+    is O -> t.state.typeStates.map { U(it) as T }.reduce { t1, t2 -> t1 union t2 }
     else -> t
 }
+
 fun invert(t: T): T = when(t) {
-    is Union -> invert(t.t1) and invert(t.t2)
-    is Intersection -> invert(t.t1) or invert(t.t2)
-    is O -> if (t.labels.all { it in Bool.labels }) O(!t.state) else t
+    is Union -> invert(t.t1) union invert(t.t2)
+    is Intersection -> invert(t.t1) intersect invert(t.t2)
+    is O -> t.copy {
+        when(it) {
+            "true" -> state["false"]
+            "false" -> state["true"]
+            else -> state[it]
+        }?.let { u -> U(u) }
+    }
     else -> t
 }

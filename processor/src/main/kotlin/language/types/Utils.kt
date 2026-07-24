@@ -39,7 +39,7 @@ fun TypeMirror.resolve(ctx: JavaModelContext, annotation: Array<String>?, progra
                         } else {
                             ClassType(
                                 javaClass,
-                                type.map { U(it!!) as T }.reduceOrNull { t1, t2 -> t1 and t2 }
+                                type.map { U(it!!) as T }.reduceOrNull { t1, t2 -> t1 union t2 }
                                     ?: return@let ErrorType("empty type")
                             )
                         }

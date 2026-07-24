@@ -97,7 +97,7 @@ fun mergeTT(tt1: TypeStateTree, tt2: TypeStateTree): TypeStateTree {
     fun rec(tree1: TypeStateTree, tree2: TypeStateTree): TypeStateTree =
         TypeStateTree(
             tree1.clazz,
-            tree1.type and tree2.type,
+            tree1.type union tree2.type,
             clss(tree1).intersect(clss(tree2))
                 .map { rec(find(tree1, it)!!, find(tree2, it)!!) },
         )

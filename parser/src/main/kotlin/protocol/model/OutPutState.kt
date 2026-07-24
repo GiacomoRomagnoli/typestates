@@ -5,18 +5,6 @@ class OutPutState internal constructor(
     private val branches: Map<String, String>
 ) : State() {
 
-    operator fun not() =
-        OutPutState(
-            protocol,
-            branches.mapKeys { (k, _) ->
-                when (k) {
-                    "true" -> "false"
-                    "false" -> "true"
-                    else -> k
-                }
-            }
-        )
-
     operator fun get(label: String) =
         when (val ref = branches[label]) {
             null -> null
@@ -25,9 +13,7 @@ class OutPutState internal constructor(
 
     val labels by lazy { branches.keys }
 
-    val typeStates by lazy {
-        branches.values.mapNotNull { protocol[it] }.toSet()
-    }
+    val typeStates by lazy { branches.values.mapNotNull { protocol[it] }.toSet() }
 
     private fun simulates(w2: OutPutState, r: Set<Pair<TypeState, TypeState>> = setOf()) =
         this.labels
