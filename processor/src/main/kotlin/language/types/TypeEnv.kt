@@ -2,10 +2,16 @@ package language.types
 
 import language.model.JavaClass
 
-sealed class Cid { abstract val id: String }
-data class FieldId(val c: JavaClass, override val id: String) : Cid()
-data class Id(override val id: String) : Cid()
+sealed interface Cid { val id: String }
+data class FieldId(val c: JavaClass, override val id: String) : Cid
+data class Id(override val id: String) : Cid
 typealias TypeEnv = Map<Cid, TC>
+typealias Delta = Pair<TypeEnv, TypeEnv>
+
+operator fun JavaClass.plus(id: String) = FieldId(this, id)
+operator fun TypeEnv.get(id: String) = this[Id(id)]
+val Delta.fields get() = this.first
+val Delta.variables get() = this.second
 
 fun term(typeEnv: TypeEnv) = typeEnv.all { (_, tc) -> term(tc) }
 
@@ -27,3 +33,34 @@ operator fun TypeEnv.not(): TypeEnv =
 
 fun pairify(typeEnv: TypeEnv, l: String): TypeEnv =
     typeEnv.mapValues { (_, tc) -> if (tc is TypeStateTree) toPairTT(tc, l) else tc }
+
+data class Eid(val id: String, val receiver: Receiver)
+enum class Receiver { THIS, SUPER, NONE }
+
+fun lookup(c: JavaClass, eid: Eid, delta: Delta): TC? {
+    val cAllF = c.allF(eid.id)
+    val supcAllF = c.superclass?.allF(eid.id)
+    return when {
+        eid.receiver == Receiver.THIS && cAllF != null -> delta.fields[cAllF + eid.id]
+        eid.receiver == Receiver.SUPER && supcAllF != null -> delta.fields[supcAllF + eid.id]
+        eid.receiver == Receiver.NONE && cAllF != null && delta.variables[eid.id] == null -> delta.fields[cAllF + eid.id]
+        eid.receiver == Receiver.NONE && delta.variables[eid.id] != null -> delta.variables[eid.id]
+        else -> BottomTC
+    }
+}
+
+fun upd(c: JavaClass, eid: Eid, tc: TC, delta: Delta) : Delta {
+    val cAllF = c.allF(eid.id)
+    val supcAllF = c.superclass?.allF(eid.id)
+    return when {
+        eid.receiver == Receiver.THIS && cAllF != null ->
+            delta.fields + (cAllF + eid.id to tc) to delta.variables
+        eid.receiver == Receiver.SUPER && supcAllF != null ->
+            delta.fields + (supcAllF + eid.id to tc) to delta.variables
+        eid.receiver == Receiver.NONE && cAllF != null && delta.variables[eid.id] == null ->
+            delta.fields + (cAllF + eid.id to tc) to delta.variables
+        eid.receiver == Receiver.NONE && delta.variables[eid.id] != null ->
+            delta.fields to delta.variables + (Id(eid.id) to tc)
+        else -> delta
+    }
+}
