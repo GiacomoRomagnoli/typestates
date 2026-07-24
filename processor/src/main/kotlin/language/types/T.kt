@@ -121,15 +121,38 @@ fun resolve(t: T): T = when(t) {
     else -> t
 }
 
-fun invert(t: T): T = when(t) {
-    is Union -> invert(t.t1) union invert(t.t2)
-    is Intersection -> invert(t.t1) intersect invert(t.t2)
-    is O -> t.copy {
-        when(it) {
-            "true" -> state["false"]
-            "false" -> state["true"]
-            else -> state[it]
-        }?.let { u -> U(u) }
+fun invert(t: T): T =
+    when(t) {
+        is Union -> invert(t.t1) union invert(t.t2)
+        is Intersection -> invert(t.t1) intersect invert(t.t2)
+        is O ->
+            if (t.labels.all { it in Bool.labels })
+                t.copy {
+                    when (it) {
+                        "true" -> state["false"]
+                        "false" -> state["true"]
+                        else -> null
+                    }?.let { u -> U(u) }
+                }
+            else t
+        else -> t
     }
-    else -> t
-}
+
+fun toPair(t: T, l: String): T =
+    when(t) {
+        is Union -> toPair(t.t1, l) union toPair(t.t2, l)
+        is Intersection -> toPair(t.t1, l) intersect toPair(t.t2, l)
+        is O ->
+            if (t[l] != null)
+                t.copy {
+                    when(it) {
+                        "true" -> U(state[l]!!)
+                        "false" -> (state.typeStates - state[l]!!)
+                            .map { u -> U(u) as T }
+                            .reduce { t1, t2 -> t1 union t2 }
+                        else -> null
+                    }
+                }
+            else t
+        else -> t
+    }

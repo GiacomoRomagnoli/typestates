@@ -22,5 +22,8 @@ fun merge(typeEnv1: TypeEnv, typeEnv2: TypeEnv): TypeEnv =
 fun restrict(typeEnv: TypeEnv, clazz: JavaClass): TypeEnv =
     typeEnv.filter { (cid, _) -> cid is FieldId && clazz isSubClassOf cid.c }
 
-operator fun TypeEnv.not() =
+operator fun TypeEnv.not(): TypeEnv =
     this.mapValues { (_, tc) -> if (tc is TypeStateTree) invertTT(tc) else tc }
+
+fun pairify(typeEnv: TypeEnv, l: String): TypeEnv =
+    typeEnv.mapValues { (_, tc) -> if (tc is TypeStateTree) toPairTT(tc, l) else tc }

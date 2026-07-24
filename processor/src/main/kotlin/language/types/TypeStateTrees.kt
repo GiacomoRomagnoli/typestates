@@ -120,6 +120,9 @@ infix fun TypeStateTree.sub(other: TypeStateTree): Boolean =
 fun invertTT(tt: TypeStateTree): TypeStateTree =
     tt(tt.clazz, invert(tt.type), tt.children.map { invertTT(it) })
 
+fun toPairTT(tt: TypeStateTree, l: String): TypeStateTree =
+    tt(tt.clazz, toPair(tt.type, l), tt.children.map { toPairTT(it, l) })
+
 fun clss(tt: TypeStateTree) =
     tt.children.map { it.clazz }.toSet()
 
