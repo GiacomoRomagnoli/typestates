@@ -1,7 +1,6 @@
 package language.types
 
 import language.model.ClassRef
-import language.model.JavaClass
 import language.model.JavaEnum
 import language.model.at
 import language.model.isSubClassOf
@@ -72,3 +71,12 @@ infix fun TC.sub(other: TC) = when(this) {
     is Void -> other is Void
 }
 
+fun alias(tc: TC) =
+    if (tc is TypeStateTree)
+        if (tc.type == Null)
+            tc
+        else if (tc.type.isResolved && tc sub tt(tc.clazz, Shared))
+            tt(tc.clazz, Shared)
+        else
+            tt(tc.clazz, Top)
+    else tc
