@@ -43,11 +43,6 @@ class Program(
     fun asJavaEnum(path: TreePath) =
         (trees.getElement(path) as? VariableElement)
             ?.takeIf { it.kind == ElementKind.ENUM_CONSTANT }
-            ?.let { (it.enclosingElement as? TypeElement)?.qualifiedName.toString() }
-            ?.let { name ->
-                enums[name] ?: elements.getTypeElement(name)
-                    ?.takeIf { it.kind == ElementKind.ENUM }
-                    ?.let(::JavaEnum)
-                    ?.also { enums[it.qualifiedName] = it }
-            }
+            ?.let { it.enclosingElement as? TypeElement }
+            ?.let { enums.getOrPut(it.qualifiedName.toString()) { JavaEnum(it) } }
 }
