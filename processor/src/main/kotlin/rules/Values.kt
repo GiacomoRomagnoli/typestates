@@ -1,7 +1,5 @@
 package rules
 
-import com.sun.source.tree.ExpressionTree
-import com.sun.source.tree.ImportTree
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.Tree.Kind.*
 import language.model.BottomClass
@@ -14,25 +12,13 @@ import language.types.Null
 import language.types.TC
 import language.types.tt
 import rules.dsl.judgement
-import kotlin.text.contains
 
 data class Value(
-    val value: ExpressionTree,
-    val program: Program,
-    private val imports: List<ImportTree>,
-    private val packageName: String? = null,
+    private val locatedExpression: LocatedExpression,
+    val program: Program
 ) {
-    val MemberSelectTree.name get() = run {
-        val name = this.toString()
-        if ('.' in name) name
-        else imports
-            .filterNot { it.isStatic }
-            .map { it.qualifiedIdentifier.toString() }
-            .firstOrNull { it.substringAfterLast(".") == name }
-            ?: packageName?.let { "$it.$name" }
-            ?: name
-
-    }
+    val value get() = locatedExpression.expr
+    val path get() = locatedExpression.path
 }
 
 val typingValue = judgement<Value, TC> {
@@ -42,14 +28,6 @@ val typingValue = judgement<Value, TC> {
         conclusion {
             left { value.kind == INT_LITERAL  }
             right { Integer }
-        }
-    }
-
-    rule("TDouble") {
-        premise {  }
-        conclusion {
-            left { value.kind == DOUBLE_LITERAL }
-            right { Double }
         }
     }
 
@@ -71,10 +49,9 @@ val typingValue = judgement<Value, TC> {
 
     rule("TEnumVal") {
         premise {
-            val value = value as MemberSelectTree
-            val enum = program.enumOf(value.name)
-            ensure(enum != null)
-            ensure(value.identifier.toString() in enum!!.labels)
+            val enum = program.asJavaEnum(path) ?: fail()
+            val l = (value as MemberSelectTree).identifier.toString()
+            ensure(l in enum.labels)
             enum
         }
         conclusion {

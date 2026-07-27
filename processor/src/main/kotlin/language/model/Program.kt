@@ -7,6 +7,7 @@ import protocol.model.Protocol
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
+import javax.lang.model.element.VariableElement
 import javax.lang.model.util.Elements
 
 class Program(
@@ -38,13 +39,15 @@ class Program(
     fun add(protocol: Protocol, binding: ProtocolBinding) { protocols[protocol] = binding }
 
     private val enums = mutableMapOf<String, JavaEnum>()
-    fun enumOf(qualifiedName: String): JavaEnum? =
-        enums[qualifiedName]
-            ?: elements.getTypeElement(qualifiedName)
-                ?.takeIf { it.kind == ElementKind.ENUM }
-                ?.let(::JavaEnum)
-                ?.also { enums[it.qualifiedName] = it }
 
-    infix fun containsEnum(name: String) = enumOf(name) != null
-
+    fun asJavaEnum(path: TreePath) =
+        (trees.getElement(path) as? VariableElement)
+            ?.takeIf { it.kind == ElementKind.ENUM_CONSTANT }
+            ?.let { (it.enclosingElement as? TypeElement)?.qualifiedName.toString() }
+            ?.let { name ->
+                enums[name] ?: elements.getTypeElement(name)
+                    ?.takeIf { it.kind == ElementKind.ENUM }
+                    ?.let(::JavaEnum)
+                    ?.also { enums[it.qualifiedName] = it }
+            }
 }
