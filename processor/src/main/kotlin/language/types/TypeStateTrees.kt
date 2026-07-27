@@ -47,7 +47,7 @@ fun ucastTT(tt: TypeStateTree, target: JavaClass): TypeStateTree {
                     ucast(tt.type, tt.clazz, superclass),
                     listOf(tt)
                 )
-            else if (tt.type.isTerminated)
+            else if (term(tt.type))
                 TypeStateTree(superclass, Shared, listOf(tt))
             else
                 TypeStateTree(superclass, Top, listOf(tt))

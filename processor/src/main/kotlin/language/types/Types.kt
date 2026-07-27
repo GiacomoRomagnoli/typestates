@@ -20,13 +20,13 @@ sealed interface RT
  */
 sealed interface PT : RT
 
-data object Bool : RT, TC { val labels = listOf("true", "false") }
+data object Bool : PT, TC { val labels = listOf("true", "false") }
 data object BoolUnd : TC
 
-data object Integer : RT, TC
+data object Integer : PT, TC
 data object IntegerUnd : TC
 
-data object Double : RT, TC
+data object Double : PT, TC
 data object DoubleUnd : TC
 
 data object Void : RT, TC
@@ -35,7 +35,7 @@ data object BottomTC : TC
 
 data class EnumType(val enum: JavaEnum, val und: Boolean = false) : PT, TC
 
-data class ErrorType(val message: String) : PT
+data class ErrorType(val message: String) : PT, TC
 
 data class ClassType(val clazz: ClassRef, val type: T): PT {
     val isWellFormed by lazy {
@@ -69,6 +69,7 @@ infix fun TC.sub(other: TC) = when(this) {
     is DoubleUnd -> other is DoubleUnd
     is IntegerUnd -> other is IntegerUnd
     is Void -> other is Void
+    else -> false
 }
 
 fun alias(tc: TC) =
@@ -80,3 +81,10 @@ fun alias(tc: TC) =
         else
             tt(tc.clazz, Top)
     else tc
+
+// il caso nonNull è stato ignorato
+fun toTC(rt: RT): TC =
+    when (rt) {
+        is ClassType -> tt(rt.clazz, rt.type)
+        is TC -> rt
+    }

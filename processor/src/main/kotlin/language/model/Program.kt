@@ -1,16 +1,37 @@
 package language.model
 
+import com.sun.source.util.TreePath
 import com.sun.source.util.Trees
 import protocol.ProtocolBinding
 import protocol.model.Protocol
 import javax.lang.model.element.ElementKind
+import javax.lang.model.element.ExecutableElement
+import javax.lang.model.element.TypeElement
 import javax.lang.model.util.Elements
 
-class Program(private val elements: Elements, private val trees: Trees) {
+class Program(
+    private val elements: Elements,
+    private val trees: Trees
+) {
     private val classes = mutableMapOf<String, JavaClass>()
-    operator fun get(qualifiedName: String) = classes[qualifiedName]
-    fun add(javaClass: JavaClass) { classes[javaClass.qualifiedName] = javaClass }
     val allClasses = classes.values
+
+    operator fun get(qualifiedName: String) = classes[qualifiedName]
+
+    fun add(javaClass: JavaClass) { classes[javaClass.qualifiedName] = javaClass }
+
+    fun asJavaClass(path: TreePath) =
+        (trees.getElement(path) as? TypeElement)?.let { this[it.qualifiedName.toString()] }
+
+    fun asJavaConstructor(path: TreePath): JavaConstructor? {
+        val element = trees.getElement(path) as? ExecutableElement
+        return element
+            ?.takeIf { it.kind == ElementKind.CONSTRUCTOR }
+            ?.let { it.enclosingElement as? TypeElement }
+            ?.let { this[it.qualifiedName.toString()] }
+            ?.constructors
+            ?.singleOrNull { it.element == element }
+    }
 
     private val protocols = mutableMapOf<Protocol, ProtocolBinding>()
     operator fun get(protocol: Protocol) = protocols[protocol]

@@ -16,9 +16,7 @@ class ConclusionScope<I, P, O> {
         right = block
     }
 
-    internal fun build(): Conclusion<I, P, O> {
-        check(left != null && right != null)
-        return Conclusion(left!!, right!!)
-    }
+    internal fun build(): Conclusion<I, P, O> =
+        Conclusion(checkNotNull(left), checkNotNull(right))
 }
 

@@ -11,6 +11,12 @@ class RuleScope<I, P, O> {
 
     fun ensure(condition: Boolean) { if (!condition) fail() }
 
+    fun <A, B> Judgement<A, B>.derive(input: A): B =
+        when (val result = this(input)) {
+            is JudgementResult.Derived -> result.value
+            else -> fail()
+        }
+
     fun premise(block: Premise<I, P>) {
         check(premise == null)
         premise = block
@@ -21,16 +27,16 @@ class RuleScope<I, P, O> {
         conclusion = ConclusionScope<I, P, O>().apply(block).build()
     }
 
-    // TODO: pensare a come propagare l'errore per debuggare
     internal fun build(name: String): Rule<I, O> {
-        checkNotNull(premise)
-        checkNotNull(conclusion)
+        val premise = checkNotNull(premise)
+        val conclusion = checkNotNull(conclusion)
         return Rule(name) { input ->
-            if (!conclusion!!.left(input)) RuleResult.Failure
-            else try {
-                val p = premise!!.invoke(input)
-                RuleResult.Success(conclusion!!.right(input, p))
-            } catch (e: PremiseFailure) {
+            if (!conclusion.left(input)) {
+                RuleResult.Failure
+            } else try {
+                val p = premise(input)
+                RuleResult.Success(conclusion.right(input, p))
+            } catch (_: PremiseFailure) {
                 RuleResult.Failure
             }
         }

@@ -50,11 +50,11 @@ val T.isResolved : Boolean
         else -> true
     }
 
-val T.isTerminated : Boolean
-    get() = when (this) {
-        is Union -> t1.isTerminated && t2.isTerminated
-        is Intersection -> t1.isTerminated || t2.isTerminated
-        is U -> state.isEnd || state.isDroppable
+fun term(t: T): Boolean =
+    when (t) {
+        is Union -> term(t.t1) && term(t.t2)
+        is Intersection -> term(t.t1) || term(t.t2)
+        is U -> t.state.isEnd || t.state.isDroppable
         else -> false
     }
 
@@ -69,7 +69,7 @@ infix fun T.sub(other: T): Boolean = when {
     this is Null -> other is Null
     this is Und -> other is Und
     this is U -> when (other) {
-        is Shared, is Null, is Und -> this.state.isEnd || this.state.isDroppable
+        is Shared, is Null, is Und -> term(this)
         is U -> this.state simulates other.state
         else -> false
     }
@@ -84,6 +84,7 @@ fun typestates(t: T): Set<State> = when(t) {
     else -> emptySet()
 }
 
+// TODO il parametro c1 sembra non utilizzato
 fun ucast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
     is Union -> ucast(t.t1, c1, c2) union ucast(t.t2, c1, c2)
     is Intersection -> ucast(t.t1, c1, c2) intersect ucast(t.t2, c1, c2)
