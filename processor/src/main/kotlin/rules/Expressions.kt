@@ -1,6 +1,8 @@
 package rules
 
 import com.sun.source.tree.ExpressionTree
+import com.sun.source.tree.LiteralTree
+import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.NewClassTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
@@ -25,7 +27,7 @@ object Expr {
     data class Left(
         val fields: TypeEnv,
         val variables: TypeEnv,
-        private val locatedExpression: LocatedExpression,
+        val locatedExpression: LocatedExpression,
         val assign: Boolean,
         val program: Program
     ) {
@@ -40,6 +42,15 @@ object Expr {
 }
 
 val typingExpression = judgement<Expr.Left, Expr.Right> {
+
+    rule("TVal") {
+        premise { typingValue.derive(Value(locatedExpression, program)) }
+        conclusion {
+            left { expression is LiteralTree || expression is MemberSelectTree }
+            right { Expr.Right(it, fields, variables) }
+        }
+    }
+
     rule("TNew") {
         premise {
             val newExpr = expression as NewClassTree

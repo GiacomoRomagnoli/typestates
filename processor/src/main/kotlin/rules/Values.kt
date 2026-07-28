@@ -14,7 +14,7 @@ import language.types.tt
 import rules.dsl.judgement
 
 data class Value(
-    private val locatedExpression: LocatedExpression,
+    val locatedExpression: LocatedExpression,
     val program: Program
 ) {
     val value get() = locatedExpression.expr
