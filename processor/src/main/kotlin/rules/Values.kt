@@ -21,7 +21,7 @@ data class Value(
     val value get() = path.leaf
 }
 
-val VALUE_JUDGEMENT = judgement<Value, TC> {
+val VALUE_JUDGMENT = judgement<Value, TC> {
 
     rule("TInt") {
         premise {  }

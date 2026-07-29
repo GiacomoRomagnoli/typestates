@@ -68,10 +68,13 @@ object Expr {
     }
 }
 
-val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
+/**
+ * Judgment for expressions
+ */
+val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule("TVal") {
-        premise { VALUE_JUDGEMENT.derive(Value(path, program)) }
+        premise { VALUE_JUDGMENT.derive(Value(path, program)) }
         conclusion {
             left { expression is LiteralTree || expression is MemberSelectTree }
             right { Expr.Right(it, fields, variables) }
@@ -85,7 +88,7 @@ val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             ensure(assign || c.protocol?.let { term(U(it.initState)) } ?: true)
             val args = newExpr.arguments.map { TreePath(path, it) }
             val exprSeqL = ExprSeq.Left(fields, variables, args, true, program)
-            val exprSeqR = EXPRESSION_SEQUENCE_JUDGEMENT.derive(exprSeqL)
+            val exprSeqR = EXPRESSION_SEQUENCE_JUDGMENT.derive(exprSeqL)
             val constructor = program.asJavaConstructor(path) ?: fail()
             ensure(exprSeqR.tcs.zip(constructor.pt).all { (tc, pt) -> tc sub toTC(pt) })
             TNew(c, exprSeqR.fields to exprSeqR.variables)
@@ -102,7 +105,7 @@ val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
-            val exprR = EXPRESSION_JUDGEMENT.derive(exprL)
+            val exprR = EXPRESSION_JUDGMENT.derive(exprL)
             ensure(exprR.tc !is TypeStateTree)
             val eid = assignment.variable.toEid() ?: fail()
             val lkp = lookup(c, eid, exprR.fields to exprR.variables) ?: fail()
@@ -122,7 +125,7 @@ val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
-            val exprR = EXPRESSION_JUDGEMENT.derive(exprL)
+            val exprR = EXPRESSION_JUDGMENT.derive(exprL)
             val tt1 = exprR.tc as? TypeStateTree ?: fail()
             val eid = assignment.variable.toEid() ?: fail()
             val delta = exprR.fields to exprR.variables
@@ -144,11 +147,11 @@ val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val assignment = expression as AssignmentTree
             val field = TreePath(path, assignment.variable)
             val fieldL = Expr.Left(fields, variables, field, false, program)
-            val fieldR = EXPRESSION_JUDGEMENT.derive(fieldL)
+            val fieldR = EXPRESSION_JUDGMENT.derive(fieldL)
             ensure(fieldR.fields == fields && fieldR.variables == variables)
             val value = TreePath(path, assignment.expression)
             val valueL = Expr.Left(fields, variables, value, true, program)
-            val valueR = EXPRESSION_JUDGEMENT.derive(valueL)
+            val valueR = EXPRESSION_JUDGMENT.derive(valueL)
             ensure(valueR.tc sub fieldR.tc)
             TUpdExt(valueR.tc, valueR.fields to valueR.variables)
         }
