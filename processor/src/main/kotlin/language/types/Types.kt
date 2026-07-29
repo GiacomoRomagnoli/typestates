@@ -39,10 +39,7 @@ data class ErrorType(val message: String) : PT, TC
 
 data class ClassType(val clazz: ClassRef, val type: T): PT {
     val isWellFormed by lazy {
-        if (clazz.isLinear)
-            typestates(type).all { it in clazz.protocol!!.protIn }
-        else
-            typestates(type).isEmpty()
+        typestates(type).all { it in (clazz.protocol?.protIn ?: emptySet()) }
     }
 }
 

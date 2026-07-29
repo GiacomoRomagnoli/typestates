@@ -1,7 +1,9 @@
 package language.types
 
 import language.model.ClassRef
+import language.model.JavaClass
 import language.model.JavaMethod
+import language.model.isSubClassOf
 import protocol.model.Method
 import protocol.model.OutPutState
 import protocol.model.TypeState
@@ -84,12 +86,22 @@ fun typestates(t: T): Set<State> = when(t) {
     else -> emptySet()
 }
 
-// TODO il parametro c1 sembra non utilizzato
-fun ucast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
-    is Union -> ucast(t.t1, c1, c2) union ucast(t.t2, c1, c2)
-    is Intersection -> ucast(t.t1, c1, c2) intersect ucast(t.t2, c1, c2)
-    is U -> c2.protocol!!.protIn.map { U(it) as T }.filter { t sub it }.reduceOrNull { t1, t2 -> t1 intersect t2 } ?: Top
-    else -> t
+fun ucast(t: T, c1: ClassRef, c2: JavaClass): T {
+    require(t.isResolved)
+    require(c2.isLinear)
+    require(c1 isSubClassOf c2)
+    require(typestates(t).all { it in (c1.protocol?.protIn ?: emptySet()) })
+    fun rec(t: T): T =
+        when (t) {
+            is Union -> rec(t.t1) union rec(t.t2)
+            is Intersection -> rec(t.t1) intersect rec(t.t2)
+            is U -> c2.protocol!!.protIn
+                .map { U(it) as T }
+                .filter { t sub it }
+                .reduceOrNull { t1, t2 -> t1 intersect t2 } ?: Top
+            else -> t
+        }
+    return rec(t)
 }
 
 fun dcast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {

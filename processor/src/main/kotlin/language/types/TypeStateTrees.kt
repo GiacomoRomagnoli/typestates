@@ -36,24 +36,23 @@ fun tt(c: ClassRef, t: T, vararg children: TypeStateTree) = TypeStateTree(c, t, 
 fun tt(c: ClassRef, t: T, children: List<TypeStateTree>) = TypeStateTree(c, t, children)
 
 fun ucastTT(tt: TypeStateTree, target: JavaClass): TypeStateTree {
+    require(tt.type.isResolved)
     require(tt.clazz isSubClassOf target)
-    fun rec(tt: TypeStateTree, target: JavaClass): TypeStateTree {
-        if (target == tt.clazz) return tt
-        val superclass = tt.clazz.superclass ?: return tt
-        val head =
-            if (superclass.isLinear)
-                TypeStateTree(
-                    superclass,
-                    ucast(tt.type, tt.clazz, superclass),
-                    listOf(tt)
-                )
-            else if (term(tt.type))
-                TypeStateTree(superclass, Shared, listOf(tt))
-            else
-                TypeStateTree(superclass, Top, listOf(tt))
-        return rec(head, target)
+    if (tt.clazz == BottomClass) {
+        require(tt.type == Null && tt.children.isEmpty())
+        return tt(target, Null)
     }
-    return rec(tt, target)
+    fun rec(tt: TypeStateTree): TypeStateTree {
+        if (target == tt.clazz) return tt
+        val superclass = requireNotNull(tt.clazz.superclass)
+        val type = when {
+            superclass.isLinear -> ucast(tt.type, tt.clazz, superclass)
+            term(tt) -> Shared
+            else -> Top
+        }
+        return rec(tt(superclass, type, tt))
+    }
+    return rec(tt)
 }
 
 fun dcastTT(tt: TypeStateTree, target: ClassRef): TypeStateTree {
