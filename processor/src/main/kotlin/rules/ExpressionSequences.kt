@@ -24,7 +24,7 @@ object ExprSeq {
     )
 }
 
-val typingExpressionSequence: Judgement<ExprSeq.Left, ExprSeq.Right> =
+val EXPRESSION_SEQUENCE_JUDGEMENT: Judgement<ExprSeq.Left, ExprSeq.Right> =
     judgement {
 
         rule("TEmptyExp") {
@@ -38,14 +38,14 @@ val typingExpressionSequence: Judgement<ExprSeq.Left, ExprSeq.Right> =
         rule("TSeqExp") {
             premise {
                 val exprL = Expr.Left(fields, variables, expressions.first(), assign, program)
-                val exprR = typingExpression.derive(exprL)
+                val exprR = EXPRESSION_JUDGEMENT.derive(exprL)
                 val exprSeqL = copy(
                     fields = resolve(exprR.fields),
                     variables = resolve(exprR.variables),
                     expressions = expressions.drop(1),
                     tcs = tcs + exprR.tc
                 )
-                typingExpressionSequence.derive(exprSeqL)
+                EXPRESSION_SEQUENCE_JUDGEMENT.derive(exprSeqL)
             }
             conclusion {
                 left { expressions.isNotEmpty() }

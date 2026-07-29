@@ -44,7 +44,11 @@ import rules.utils.toEid
 data class TNew(val c: JavaClass, val delta: Delta)
 data class TUpdB(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
 data class TUpdO(val c: JavaClass, val eid: Eid, val tt1: TypeStateTree, val tt2: TypeStateTree, val delta: Delta)
+data class TUpdExt(val tc: TC, val delta: Delta)
 
+/**
+ * data classes for input and output of the judgment
+ */
 object Expr {
     data class Left(
         val fields: TypeEnv,
@@ -64,10 +68,10 @@ object Expr {
     }
 }
 
-val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
+val EXPRESSION_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule("TVal") {
-        premise { typingValue.derive(Value(path, program)) }
+        premise { VALUE_JUDGEMENT.derive(Value(path, program)) }
         conclusion {
             left { expression is LiteralTree || expression is MemberSelectTree }
             right { Expr.Right(it, fields, variables) }
@@ -81,7 +85,7 @@ val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
             ensure(assign || c.protocol?.let { term(U(it.initState)) } ?: true)
             val args = newExpr.arguments.map { TreePath(path, it) }
             val exprSeqL = ExprSeq.Left(fields, variables, args, true, program)
-            val exprSeqR = typingExpressionSequence.derive(exprSeqL)
+            val exprSeqR = EXPRESSION_SEQUENCE_JUDGEMENT.derive(exprSeqL)
             val constructor = program.asJavaConstructor(path) ?: fail()
             ensure(exprSeqR.tcs.zip(constructor.pt).all { (tc, pt) -> tc sub toTC(pt) })
             TNew(c, exprSeqR.fields to exprSeqR.variables)
@@ -98,7 +102,7 @@ val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
-            val exprR = typingExpression.derive(exprL)
+            val exprR = EXPRESSION_JUDGEMENT.derive(exprL)
             ensure(exprR.tc !is TypeStateTree)
             val eid = assignment.variable.toEid() ?: fail()
             val lkp = lookup(c, eid, exprR.fields to exprR.variables) ?: fail()
@@ -118,7 +122,7 @@ val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
-            val exprR = typingExpression.derive(exprL)
+            val exprR = EXPRESSION_JUDGEMENT.derive(exprL)
             val tt1 = exprR.tc as? TypeStateTree ?: fail()
             val eid = assignment.variable.toEid() ?: fail()
             val delta = exprR.fields to exprR.variables
@@ -132,6 +136,28 @@ val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { (expression as? AssignmentTree)?.variable?.toEid() != null }
             right { Expr.Right(alias(it.tt1), upd(it.c, it.eid, it.tt2, it.delta)) }
+        }
+    }
+
+    rule<TUpdExt>("TUpdExt") {
+        premise {
+            val assignment = expression as AssignmentTree
+            val field = TreePath(path, assignment.variable)
+            val fieldL = Expr.Left(fields, variables, field, false, program)
+            val fieldR = EXPRESSION_JUDGEMENT.derive(fieldL)
+            ensure(fieldR.fields == fields && fieldR.variables == variables)
+            val value = TreePath(path, assignment.expression)
+            val valueL = Expr.Left(fields, variables, value, true, program)
+            val valueR = EXPRESSION_JUDGEMENT.derive(valueL)
+            ensure(valueR.tc sub fieldR.tc)
+            TUpdExt(valueR.tc, valueR.fields to valueR.variables)
+        }
+        conclusion {
+            left {
+                val variable = (expression as? AssignmentTree)?.variable as? MemberSelectTree
+                variable != null && variable.toEid() == null && variable.expression.toEid() != null
+            }
+            right { Expr.Right(it.tc, it.delta) }
         }
     }
 }
