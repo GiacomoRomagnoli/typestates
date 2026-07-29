@@ -7,6 +7,7 @@ import com.sun.source.tree.NewClassTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
+import language.model.isSubClassOf
 import language.types.Bool
 import language.types.BoolUnd
 import language.types.Delta
@@ -22,6 +23,7 @@ import language.types.TypeEnv
 import language.types.TypeStateTree
 import language.types.get
 import language.types.U
+import language.types.alias
 import language.types.defined
 import language.types.fields
 import language.types.lookup
@@ -29,6 +31,7 @@ import language.types.sub
 import language.types.term
 import language.types.toTC
 import language.types.tt
+import language.types.ucastTT
 import language.types.upd
 import language.types.variables
 import rules.dsl.Judgement
@@ -38,8 +41,9 @@ import rules.utils.toEid
 /**
  * data classes for partial result of rules
  */
-data class TUpdB(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
 data class TNew(val c: JavaClass, val delta: Delta)
+data class TUpdB(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
+data class TUpdO(val c: JavaClass, val eid: Eid, val tt1: TypeStateTree, val tt2: TypeStateTree, val delta: Delta)
 
 object Expr {
     data class Left(
@@ -105,6 +109,29 @@ val typingExpression: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { (expression as? AssignmentTree)?.variable?.toEid() != null }
             right { Expr.Right(it.tc, upd(it.c, it.eid, it.tc, it.delta)) }
+        }
+    }
+
+    rule<TUpdO>("TUpdO") {
+        premise {
+            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val assignment = expression as AssignmentTree
+            val e = TreePath(path, assignment.expression)
+            val exprL = Expr.Left(fields, variables, e, true, program)
+            val exprR = typingExpression.derive(exprL)
+            val tt1 = exprR.tc as? TypeStateTree ?: fail()
+            val eid = assignment.variable.toEid() ?: fail()
+            val delta = exprR.fields to exprR.variables
+            val tt = lookup(c, eid, delta) as? TypeStateTree ?: fail()
+            ensure(term(tt))
+            ensure(tt1.clazz isSubClassOf tt.clazz)
+            val cl = tt.clazz as? JavaClass ?: fail()
+            val tt2 = ucastTT(tt1, cl)
+            TUpdO(c, eid, tt1, tt2, delta)
+        }
+        conclusion {
+            left { (expression as? AssignmentTree)?.variable?.toEid() != null }
+            right { Expr.Right(alias(it.tt1), upd(it.c, it.eid, it.tt2, it.delta)) }
         }
     }
 }
