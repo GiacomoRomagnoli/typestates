@@ -1,5 +1,6 @@
 package rules
 
+import com.sun.source.util.TreePath
 import language.model.Program
 import language.types.TC
 import language.types.TypeEnv
@@ -11,7 +12,7 @@ object ExprSeq {
     data class Left(
         val fields: TypeEnv,
         val variables: TypeEnv,
-        val expressions: List<LocatedExpression>,
+        val expressions: List<TreePath>,
         val assign: Boolean,
         val program: Program,
         val tcs: List<TC> = emptyList()

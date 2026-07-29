@@ -88,3 +88,12 @@ fun toTC(rt: RT): TC =
         is ClassType -> tt(rt.clazz, rt.type)
         is TC -> rt
     }
+
+fun TC.defined() =
+    when (this) {
+        Bool, BoolUnd -> Bool
+        Integer, IntegerUnd -> Integer
+        Double, DoubleUnd -> Double
+        is EnumType -> copy(und = false)
+        else -> this
+    }

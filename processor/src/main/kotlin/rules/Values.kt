@@ -2,6 +2,7 @@ package rules
 
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.Tree.Kind.*
+import com.sun.source.util.TreePath
 import language.model.BottomClass
 import language.model.Program
 import language.types.Bool
@@ -14,11 +15,10 @@ import language.types.tt
 import rules.dsl.judgement
 
 data class Value(
-    val locatedExpression: LocatedExpression,
+    val path: TreePath,
     val program: Program
 ) {
-    val value get() = locatedExpression.expr
-    val path get() = locatedExpression.path
+    val value get() = path.leaf
 }
 
 val typingValue = judgement<Value, TC> {
