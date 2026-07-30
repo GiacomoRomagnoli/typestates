@@ -4,6 +4,8 @@ import com.sun.source.tree.AssignmentTree
 import com.sun.source.tree.LiteralTree
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.NewClassTree
+import com.sun.source.tree.PrimitiveTypeTree
+import com.sun.source.tree.TypeCastTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
@@ -37,6 +39,7 @@ import language.types.variables
 import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
+import javax.lang.model.type.TypeKind
 
 /**
  * data classes for partial result of rules
@@ -45,6 +48,7 @@ data class TNew(val c: JavaClass, val delta: Delta)
 data class TUpdB(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
 data class TUpdO(val c: JavaClass, val eid: Eid, val tt1: TypeStateTree, val tt2: TypeStateTree, val delta: Delta)
 data class TUpdExt(val tc: TC, val delta: Delta)
+typealias TCastB = TUpdExt
 
 /**
  * data classes for input and output of the judgment
@@ -159,6 +163,31 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             left {
                 val variable = (expression as? AssignmentTree)?.variable as? MemberSelectTree
                 variable != null && variable.toEid() == null && variable.expression.toEid() != null
+            }
+            right { Expr.Right(it.tc, it.delta) }
+        }
+    }
+
+    rule<TCastB>("TCastB") {
+        premise {
+            val cast = expression as TypeCastTree
+            val e = TreePath(path, cast.expression)
+            val eL = Expr.Left(fields, variables, e, assign, program)
+            val eR = EXPRESSION_JUDGMENT.derive(eL)
+            ensure(eR.tc in setOf(Bool, Integer, Double))
+            val b = when((cast.type as PrimitiveTypeTree).primitiveTypeKind) {
+                TypeKind.BOOLEAN -> Bool
+                TypeKind.INT -> Integer
+                TypeKind.DOUBLE -> Double
+                else -> fail()
+            }
+            ensure(b sub eR.tc || eR.tc sub b)
+            TCastB(b, eR.fields to eR.variables)
+        }
+        conclusion {
+            left {
+                ((expression as? TypeCastTree)?.type as? PrimitiveTypeTree)
+                    ?.primitiveTypeKind in setOf(TypeKind.BOOLEAN, TypeKind.INT, TypeKind.DOUBLE)
             }
             right { Expr.Right(it.tc, it.delta) }
         }
