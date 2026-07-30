@@ -47,11 +47,16 @@ class JavaClass(
             .filter { it.kind == ElementKind.FIELD && Modifier.STATIC !in it.modifiers}
             .map { JavaField(it as VariableElement, program, ctx) }
     }
+    val qualifiedName = element.qualifiedName.toString()
 
     fun allF(fieldName: String): JavaClass? =
         if(fields.firstOrNull { it.name == fieldName } != null) this else superclass?.allF(fieldName)
 
-    val qualifiedName = element.qualifiedName.toString()
+    override fun equals(other: Any?): Boolean =
+        this === other || other is JavaClass && qualifiedName == other.qualifiedName
+
+    override fun hashCode(): Int =
+        qualifiedName.hashCode()
 }
 
 /**
