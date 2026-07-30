@@ -26,6 +26,7 @@ import language.types.TypeStateTree
 import language.types.get
 import language.types.U
 import language.types.alias
+import language.types.dcastTT
 import language.types.defined
 import language.types.fields
 import language.types.lookup
@@ -42,13 +43,15 @@ import rules.utils.toEid
 import javax.lang.model.type.TypeKind
 
 /**
- * data classes for partial result of rules
+ * data types for partial result of rules
  */
 data class TNew(val c: JavaClass, val delta: Delta)
 data class TUpdB(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
 data class TUpdO(val c: JavaClass, val eid: Eid, val tt1: TypeStateTree, val tt2: TypeStateTree, val delta: Delta)
 data class TUpdExt(val tc: TC, val delta: Delta)
 typealias TCastB = TUpdExt
+data class TUCastO(val c: JavaClass, val tt: TypeStateTree, val delta: Delta)
+typealias TDCastO = TUCastO
 
 /**
  * data classes for input and output of the judgment
@@ -190,6 +193,45 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
                     ?.primitiveTypeKind in setOf(TypeKind.BOOLEAN, TypeKind.INT, TypeKind.DOUBLE)
             }
             right { Expr.Right(it.tc, it.delta) }
+        }
+    }
+
+    rule<TUCastO>("TUCastO") {
+        premise {
+            val cast = expression as TypeCastTree
+            val e = TreePath(path, cast.expression)
+            val eL = Expr.Left(fields, variables, e, assign, program)
+            val eR = EXPRESSION_JUDGMENT.derive(eL)
+            val tt = eR.tc as? TypeStateTree ?: fail()
+            val c = program.asJavaClass(TreePath(path, cast.type)) ?: fail()
+            ensure(tt.clazz isSubClassOf c)
+            TUCastO(c, tt, eR.fields to eR.variables)
+        }
+        conclusion {
+            left {
+                (expression as? TypeCastTree)
+                    ?.let{ program.asJavaClass(TreePath(path, it.type)) } != null
+            }
+            right { Expr.Right(ucastTT(it.tt, it.c), it.delta) }
+        }
+    }
+
+    rule<TDCastO>("TDCastO") {
+        premise {
+            val cast = expression as TypeCastTree
+            val e = TreePath(path, cast.expression)
+            val eL = Expr.Left(fields, variables, e, assign, program)
+            val eR = EXPRESSION_JUDGMENT.derive(eL)
+            val tt = eR.tc as? TypeStateTree ?: fail()
+            val c = program.asJavaClass(TreePath(path, cast.type)) ?: fail()
+            ensure(c isSubClassOf tt.clazz)
+            ensure(c != tt.clazz)
+            TDCastO(c, tt, eR.fields to eR.variables)
+        }
+        conclusion {
+            left { (expression as? TypeCastTree)
+                ?.let{ program.asJavaClass(TreePath(path, it.type)) } != null }
+            right { Expr.Right(dcastTT(it.tt, it.c), it.delta) }
         }
     }
 }
