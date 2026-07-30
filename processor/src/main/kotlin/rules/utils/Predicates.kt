@@ -10,7 +10,7 @@ import protocol.model.OutPutState
 fun chkProt(clazz: JavaClass): Boolean {
     require(clazz.isLinear)
     for (transition in clazz.protocol!!.transitions) {
-        val jmt = clazz.allMeths.find { it.sign == transition.method }
+        val jmt = clazz.allMeths.find { it.pSig == transition.method }
         if (jmt != null) {
             val state = transition.state
             if (state is OutPutState) {

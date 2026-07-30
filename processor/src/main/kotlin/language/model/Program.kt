@@ -8,12 +8,8 @@ import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
-import javax.lang.model.util.Elements
 
-class Program(
-    private val elements: Elements,
-    private val trees: Trees
-) {
+class Program(private val trees: Trees) {
     private val classes = mutableMapOf<String, JavaClass>()
     val allClasses = classes.values
 
@@ -31,6 +27,16 @@ class Program(
             ?.let { it.enclosingElement as? TypeElement }
             ?.let { this[it.qualifiedName.toString()] }
             ?.constructors
+            ?.singleOrNull { it.element == element }
+    }
+
+    fun asJavaMethod(path: TreePath): JavaMethod? {
+        val element = trees.getElement(path) as? ExecutableElement
+        return element
+            ?.takeIf { it.kind == ElementKind.METHOD }
+            ?.let { it.enclosingElement as? TypeElement }
+            ?.let { this[it.qualifiedName.toString()] }
+            ?.meths
             ?.singleOrNull { it.element == element }
     }
 

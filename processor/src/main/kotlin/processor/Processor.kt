@@ -19,7 +19,7 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 
 class Processor: AbstractProcessor() {
-    val program = Program(processingEnv.elementUtils, Trees.instance(processingEnv))
+    val program = Program(Trees.instance(processingEnv))
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(
         Ensures::class.java.canonicalName,

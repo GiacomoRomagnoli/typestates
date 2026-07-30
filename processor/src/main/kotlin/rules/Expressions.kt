@@ -3,6 +3,7 @@ package rules
 import com.sun.source.tree.AssignmentTree
 import com.sun.source.tree.LiteralTree
 import com.sun.source.tree.MemberSelectTree
+import com.sun.source.tree.MethodInvocationTree
 import com.sun.source.tree.NewClassTree
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.TypeCastTree
@@ -21,6 +22,7 @@ import language.types.Integer
 import language.types.IntegerUnd
 import language.types.Shared
 import language.types.TC
+import language.types.Top
 import language.types.TypeEnv
 import language.types.TypeStateTree
 import language.types.get
@@ -28,6 +30,7 @@ import language.types.U
 import language.types.alias
 import language.types.dcastTT
 import language.types.defined
+import language.types.evoTTI
 import language.types.fields
 import language.types.lookup
 import language.types.sub
@@ -52,6 +55,7 @@ data class TUpdExt(val tc: TC, val delta: Delta)
 typealias TCastB = TUpdExt
 data class TUCastO(val c: JavaClass, val tt: TypeStateTree, val delta: Delta)
 typealias TDCastO = TUCastO
+data class TCall(val c: JavaClass, val eid: Eid, val tc: TC, val tt: TypeStateTree, val delta: Delta)
 
 /**
  * data classes for input and output of the judgment
@@ -164,8 +168,9 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         }
         conclusion {
             left {
-                val variable = (expression as? AssignmentTree)?.variable as? MemberSelectTree
-                variable != null && variable.toEid() == null && variable.expression.toEid() != null
+                ((expression as? AssignmentTree)?.variable as? MemberSelectTree)
+                    ?.expression
+                    ?.toEid() != null
             }
             right { Expr.Right(it.tc, it.delta) }
         }
@@ -229,9 +234,42 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             TDCastO(c, tt, eR.fields to eR.variables)
         }
         conclusion {
-            left { (expression as? TypeCastTree)
-                ?.let{ program.asJavaClass(TreePath(path, it.type)) } != null }
+            left {
+                (expression as? TypeCastTree)?.let{ program.asJavaClass(TreePath(path, it.type)) } != null
+            }
             right { Expr.Right(dcastTT(it.tt, it.c), it.delta) }
+        }
+    }
+
+    rule<TCall>("TCall") {
+        premise {
+            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val invocation = expression as MethodInvocationTree
+            val select = invocation.methodSelect as MemberSelectTree
+            val receiver = TreePath(TreePath(path, select), select.expression)
+            val receiverL = Expr.Left(fields, variables, receiver, true, program)
+            val receiverR = EXPRESSION_JUDGMENT.derive(receiverL)
+            val tt = receiverR.tc as? TypeStateTree ?: fail()
+            val args = invocation.arguments.map { TreePath(path, it) }
+            val argsL = ExprSeq.Left(receiverR.fields, receiverR.variables, args, true, program)
+            val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
+            val method = program.asJavaMethod(path) ?: fail()
+            ensure(argsR.tcs.size == method.pt.size)
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            val tt1 = evoTTI(tt, method.pSig)
+            ensure(!(Top sub tt1.type))
+            val tc = toTC(method.rt)
+            ensure(assign || term(tc))
+            val eid = select.expression.toEid() ?: fail()
+            TCall(c, eid, tc, tt1, argsR.fields to argsR.variables)
+        }
+        conclusion {
+            left {
+                ((expression as? MethodInvocationTree)?.methodSelect as? MemberSelectTree)
+                    ?.expression
+                    ?.toEid() != null
+            }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, it.tt, it.delta)) }
         }
     }
 }

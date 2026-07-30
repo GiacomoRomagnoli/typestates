@@ -3,9 +3,9 @@ package language.types
 import language.model.BottomClass
 import language.model.ClassRef
 import language.model.JavaClass
-import language.model.JavaMethod
 import language.model.at
 import language.model.isSubClassOf
+import protocol.model.Method
 
 data class TypeStateTree(val classType: ClassType, val children: List<TypeStateTree> = emptyList()) : TC {
     constructor(clazz: ClassRef, type: T, children: List<TypeStateTree> = emptyList())
@@ -70,7 +70,7 @@ fun closestTT(tt: TypeStateTree, c: ClassRef): TypeStateTree {
     }
 }
 
-fun evoTTI(tt: TypeStateTree, mt: JavaMethod): TypeStateTree =
+fun evoTTI(tt: TypeStateTree, mt: Method): TypeStateTree =
     TypeStateTree(
         tt.clazz,
         evoI(tt.type, mt),

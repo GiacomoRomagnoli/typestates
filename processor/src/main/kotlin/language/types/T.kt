@@ -2,7 +2,6 @@ package language.types
 
 import language.model.ClassRef
 import language.model.JavaClass
-import language.model.JavaMethod
 import language.model.isSubClassOf
 import protocol.model.Method
 import protocol.model.OutPutState
@@ -111,11 +110,11 @@ fun dcast(t: T, c1: ClassRef, c2: ClassRef): T = when(t) {
     else -> t
 }
 
-fun evoI(t: T, mt: JavaMethod): T =
+fun evoI(t: T, mt: Method): T =
     when(t) {
         is Union -> evoI(t.t1, mt) union evoI(t.t2, mt)
         is Intersection -> evoI(t.t1, mt) intersect evoI(t.t2, mt)
-        is U -> t[mt.sign] ?: t
+        is U -> t[mt] ?: Top
         else -> Top
     }
 

@@ -19,7 +19,7 @@ class JavaMethod(
             other.element,
             element.enclosingElement as TypeElement
         )
-    val sign by lazy {
+    val pSig by lazy {
         Method(
             element.simpleName.toString(),
             element.parameters.map { it.asType() }.map {
