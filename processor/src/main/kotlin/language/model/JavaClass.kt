@@ -2,6 +2,7 @@ package language.model
 
 import language.types.ClassType
 import language.types.T
+import protocol.model.Method
 import protocol.model.Protocol
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
@@ -77,3 +78,5 @@ infix fun ClassRef.isSubClassOf(other: ClassRef) =
     }
 
 infix fun ClassRef.at(t: T) = ClassType(this, t)
+
+fun anytime(c: ClassRef, mt: Method) = (c.protocol?.protIn ?: emptySet()).none { mt in it.methods }

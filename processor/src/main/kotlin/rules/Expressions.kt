@@ -1,6 +1,7 @@
 package rules
 
 import com.sun.source.tree.AssignmentTree
+import com.sun.source.tree.IdentifierTree
 import com.sun.source.tree.LiteralTree
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.MethodInvocationTree
@@ -10,6 +11,7 @@ import com.sun.source.tree.TypeCastTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
+import language.model.anytime
 import language.model.isSubClassOf
 import language.types.Bool
 import language.types.BoolUnd
@@ -20,6 +22,7 @@ import language.types.Eid
 import language.types.EnumType
 import language.types.Integer
 import language.types.IntegerUnd
+import language.types.Null
 import language.types.Shared
 import language.types.TC
 import language.types.Top
@@ -56,6 +59,8 @@ typealias TCastB = TUpdExt
 data class TUCastO(val c: JavaClass, val tt: TypeStateTree, val delta: Delta)
 typealias TDCastO = TUCastO
 data class TCall(val c: JavaClass, val eid: Eid, val tc: TC, val tt: TypeStateTree, val delta: Delta)
+typealias TAnyt = TCall
+typealias TAnytM = TUpdExt
 
 /**
  * data classes for input and output of the judgment
@@ -270,6 +275,62 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
                     ?.toEid() != null
             }
             right { Expr.Right(it.tc, upd(it.c, it.eid, it.tt, it.delta)) }
+        }
+    }
+
+    rule<TAnyt>("TAnyt") {
+        premise {
+            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val invocation = expression as MethodInvocationTree
+            val select = invocation.methodSelect as MemberSelectTree
+            val receiver = TreePath(TreePath(path, select), select.expression)
+            val receiverL = Expr.Left(fields, variables, receiver, true, program)
+            val receiverR = EXPRESSION_JUDGMENT.derive(receiverL)
+            val tt = receiverR.tc as? TypeStateTree ?: fail()
+            val args = invocation.arguments.map { TreePath(path, it) }
+            val argsL = ExprSeq.Left(receiverR.fields, receiverR.variables, args, true, program)
+            val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
+            val method = program.asJavaMethod(path) ?: fail()
+            ensure(argsR.tcs.size == method.pt.size)
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            ensure(anytime(tt.clazz, method.pSig))
+            val tc = toTC(method.rt)
+            ensure(assign || term(tc))
+            ensure(!(Null sub tt.type))
+            val eid = select.expression.toEid() ?: fail()
+            TAnyt(c, eid, tc, tt, argsR.fields to argsR.variables)
+        }
+        conclusion {
+            left {
+                ((expression as? MethodInvocationTree)?.methodSelect as? MemberSelectTree)
+                    ?.expression
+                    ?.toEid() != null
+            }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, it.tt, it.delta)) }
+        }
+    }
+
+    rule<TAnytM>("TAnytM") {
+        premise {
+            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val invocation = expression as MethodInvocationTree
+            val args = invocation.arguments.map { TreePath(path, it) }
+            val argsL = ExprSeq.Left(fields, variables, args, true, program)
+            val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
+            val method = program.asJavaMethod(path) ?: fail()
+            ensure(argsR.tcs.size == method.pt.size)
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            ensure(anytime(c, method.pSig))
+            val tc = toTC(method.rt)
+            ensure(assign || term(tc))
+            TAnytM(tc, argsR.fields to argsR.variables)
+        }
+        conclusion {
+            left {
+                ((expression as? MethodInvocationTree)?.methodSelect as? IdentifierTree)
+                    ?.name.toString() in setOf("this", "super")
+            }
+            right { Expr.Right(it.tc, it.delta) }
         }
     }
 }
