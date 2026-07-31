@@ -79,4 +79,4 @@ infix fun ClassRef.isSubClassOf(other: ClassRef) =
 
 infix fun ClassRef.at(t: T) = ClassType(this, t)
 
-fun anytime(c: ClassRef, mt: Method) = (c.protocol?.protIn ?: emptySet()).none { mt in it.methods }
+fun anytime(c: ClassRef, mt: Method) = c.protocol?.protIn.orEmpty().none { mt in it.methods }

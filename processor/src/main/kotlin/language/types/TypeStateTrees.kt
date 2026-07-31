@@ -13,6 +13,9 @@ data class TypeStateTree(val classType: ClassType, val children: List<TypeStateT
 
     val clazz get() =  classType.clazz
     val type get() = classType.type
+    val isResolved: Boolean by lazy {
+        type.isResolved && children.all { it.isResolved }
+    }
     val isWellFormed: Boolean by lazy {
         classType.isWellFormed &&
         nodup(this) &&
@@ -36,7 +39,8 @@ fun tt(c: ClassRef, t: T, vararg children: TypeStateTree) = TypeStateTree(c, t, 
 fun tt(c: ClassRef, t: T, children: List<TypeStateTree>) = TypeStateTree(c, t, children)
 
 fun ucastTT(tt: TypeStateTree, target: JavaClass): TypeStateTree {
-    require(tt.type.isResolved)
+    require(tt.isResolved)
+    require(tt.isWellFormed)
     require(tt.clazz isSubClassOf target)
     if (tt.clazz == BottomClass) {
         require(tt.type == Null && tt.children.isEmpty())
@@ -56,6 +60,8 @@ fun ucastTT(tt: TypeStateTree, target: JavaClass): TypeStateTree {
 }
 
 fun dcastTT(tt: TypeStateTree, target: ClassRef): TypeStateTree {
+    require(tt.isResolved)
+    require(tt.isWellFormed)
     require(target isSubClassOf tt.clazz)
     val closest = closestTT(tt, target)
     return if (target == closest.clazz) closest
