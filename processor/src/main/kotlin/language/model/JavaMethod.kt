@@ -1,24 +1,37 @@
 package language.model
 
 import annotations.Ensures
-import language.types.arrayLevel
-import language.types.resolve
 import protocol.model.JavaType
 import protocol.model.Method
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
+import javax.lang.model.type.ArrayType
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 
 class JavaMethod(
     override val element: ExecutableElement,
     program: Program,
     ctx: JavaModelContext
 ) : JavaExecutable(element, program, ctx) {
+
+    private fun TypeMirror.arrayLevel(): Int {
+        var current = this
+        var arrayLevel = 0
+        while (current.kind == TypeKind.ARRAY) {
+            arrayLevel++
+            current = (current as ArrayType).componentType
+        }
+        return arrayLevel
+    }
+
     infix fun overrides(other: JavaMethod) =
         ctx.elements.overrides(
             element,
             other.element,
             element.enclosingElement as TypeElement
         )
+
     val pSig by lazy {
         Method(
             element.simpleName.toString(),
@@ -30,8 +43,9 @@ class JavaMethod(
             }
         )
     }
+
     val rt by lazy {
-        val annotation = element.getAnnotation(Ensures::class.java)?.value
-        element.returnType.resolve(ctx, annotation, program)
+        val annotation = element.getAnnotation(Ensures::class.java)?.value?.toSet()
+        element.returnType.toRT(annotation)
     }
 }

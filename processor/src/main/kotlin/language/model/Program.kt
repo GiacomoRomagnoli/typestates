@@ -13,8 +13,8 @@ class Program(private val trees: Trees) {
     private val classes = mutableMapOf<String, JavaClass>()
     val allClasses = classes.values
 
+    // TODO get dovrebbe essere un getOrPut sotto per caricare classi in modo lazy
     operator fun get(qualifiedName: String) = classes[qualifiedName]
-
     fun add(javaClass: JavaClass) { classes[javaClass.qualifiedName] = javaClass }
 
     fun asJavaClass(path: TreePath) =
@@ -45,6 +45,11 @@ class Program(private val trees: Trees) {
     fun add(protocol: Protocol, binding: ProtocolBinding) { protocols[protocol] = binding }
 
     private val enums = mutableMapOf<String, JavaEnum>()
+
+    fun toJavaEnum(element: TypeElement) : JavaEnum {
+        require(element.kind == ElementKind.ENUM)
+        return enums.getOrPut(element.qualifiedName.toString()) { JavaEnum(element) }
+    }
 
     fun asJavaEnum(path: TreePath) =
         (trees.getElement(path) as? VariableElement)

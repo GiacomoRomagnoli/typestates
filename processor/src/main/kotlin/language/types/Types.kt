@@ -35,11 +35,9 @@ data object BottomTC : TC
 
 data class EnumType(val enum: JavaEnum, val und: Boolean = false) : PT, TC
 
-data class ErrorType(val message: String) : PT, TC
-
 data class ClassType(val clazz: ClassRef, val type: T): PT {
     val isWellFormed by lazy {
-        typestates(type).all { it in (clazz.protocol?.protIn ?: emptySet()) }
+        typestates(type).all { it in clazz.protocol?.protIn.orEmpty() }
     }
 }
 
@@ -66,7 +64,6 @@ infix fun TC.sub(other: TC) = when(this) {
     is DoubleUnd -> other is DoubleUnd
     is IntegerUnd -> other is IntegerUnd
     is Void -> other is Void
-    else -> false
 }
 
 fun alias(tc: TC) =
@@ -79,7 +76,6 @@ fun alias(tc: TC) =
             tt(tc.clazz, Top)
     else tc
 
-// il caso nonNull è stato ignorato
 fun toTC(rt: RT): TC =
     when (rt) {
         is ClassType -> tt(rt.clazz, rt.type)
