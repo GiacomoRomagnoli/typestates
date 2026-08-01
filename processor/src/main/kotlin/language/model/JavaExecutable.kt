@@ -11,11 +11,10 @@ abstract class JavaExecutable(
     protected val program: Program,
     protected val ctx: JavaModelContext
 ) {
-    val body: JavaBody? by lazy {
+    val body by lazy {
         val declaration = ctx.trees.getTree(element) ?: return@lazy null
-        val declarationPath = ctx.trees.getPath(element) ?: return@lazy null
-        val block = declaration.body ?: return@lazy null
-        JavaBody(block, TreePath(declarationPath, block))
+        val path = ctx.trees.getPath(element) ?: return@lazy null
+        TreePath(path, declaration.body)
     }
 
     val pt by lazy {
