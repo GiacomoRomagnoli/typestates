@@ -7,7 +7,9 @@ import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.MethodInvocationTree
 import com.sun.source.tree.NewClassTree
 import com.sun.source.tree.PrimitiveTypeTree
+import com.sun.source.tree.Tree
 import com.sun.source.tree.TypeCastTree
+import com.sun.source.tree.UnaryTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
@@ -36,6 +38,7 @@ import language.types.defined
 import language.types.evoTTI
 import language.types.fields
 import language.types.lookup
+import language.types.not
 import language.types.sub
 import language.types.term
 import language.types.toTC
@@ -327,10 +330,27 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         }
         conclusion {
             left {
-                ((expression as? MethodInvocationTree)?.methodSelect as? IdentifierTree)
-                    ?.name.toString() in setOf("this", "super")
+                val invocation = expression as? MethodInvocationTree
+                val select = invocation?.methodSelect
+                select is IdentifierTree ||
+                        ((select as? MemberSelectTree)?.expression as? IdentifierTree)
+                            ?.name.toString() in setOf("this", "super")
             }
             right { Expr.Right(it.tc, it.delta) }
+        }
+    }
+
+    rule<Delta>("TNot") {
+        premise {
+            val not = expression as UnaryTree
+            val e = not.expression
+            val judgement = EXPRESSION_JUDGMENT.derive(copy(path = TreePath(path, e), assign = false))
+            ensure(judgement.tc is Bool)
+            judgement.fields to judgement.variables
+        }
+        conclusion {
+            left { expression.kind == Tree.Kind.LOGICAL_COMPLEMENT }
+            right { Expr.Right(Bool, !it.fields, !it.variables) }
         }
     }
 }
