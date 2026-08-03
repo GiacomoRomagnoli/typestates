@@ -3,6 +3,7 @@ package rules
 import com.sun.source.tree.AssignmentTree
 import com.sun.source.tree.BinaryTree
 import com.sun.source.tree.IdentifierTree
+import com.sun.source.tree.InstanceOfTree
 import com.sun.source.tree.LiteralTree
 import com.sun.source.tree.MemberSelectTree
 import com.sun.source.tree.MethodInvocationTree
@@ -416,6 +417,52 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
                     evolve(it.variables, it.l)
                 )
             }
+        }
+    }
+
+    rule<TEqL>("TEqL2") {
+        premise {
+            val equals = expression as BinaryTree
+            val l = (equals.leftOperand as? MemberSelectTree)?.identifier?.toString()
+                ?: (equals.leftOperand as LiteralTree).value.toString()
+            val e = EXPRESSION_JUDGMENT.derive(
+                copy(path = TreePath(path, equals.rightOperand), assign = false)
+            )
+            val tc = VALUE_JUDGMENT.derive(Value(TreePath(path, equals.leftOperand), program))
+            ensure(e.tc == tc)
+            TEqL(l, e.fields, e.variables)
+        }
+        conclusion {
+            left {
+                val equals = expression as? BinaryTree ?: return@left false
+                expression.kind == Tree.Kind.EQUAL_TO &&
+                        isLabel(TreePath(path, equals.leftOperand)) &&
+                        !isLabel(TreePath(path, equals.rightOperand))
+            }
+            right {
+                Expr.Right(
+                    Bool,
+                    evolve(it.fields, it.l),
+                    evolve(it.variables, it.l)
+                )
+            }
+        }
+    }
+
+    rule("TInst") {
+        premise {
+            val instanceOf = expression as InstanceOfTree
+            val e = EXPRESSION_JUDGMENT.derive(
+                copy(path = TreePath(path, instanceOf.expression), assign = false)
+            )
+            val c = program.asJavaClass(TreePath(path,instanceOf.type)) ?: fail()
+            ensure(e.tc is TypeStateTree)
+            ensure((e.tc as TypeStateTree).clazz isSubClassOf c)
+            e.fields to e.variables
+        }
+        conclusion {
+            left { expression.kind == Tree.Kind.INSTANCE_OF }
+            right { Expr.Right(Bool, it ) }
         }
     }
 }
