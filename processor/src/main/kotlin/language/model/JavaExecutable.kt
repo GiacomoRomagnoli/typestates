@@ -7,7 +7,6 @@ import language.types.Double
 import language.types.EnumType
 import language.types.Integer
 import language.types.PT
-import language.types.RT
 import language.types.Shared
 import language.types.T
 import language.types.Top
