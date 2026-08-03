@@ -1,6 +1,7 @@
 package rules
 
 import com.sun.source.tree.AssignmentTree
+import com.sun.source.tree.BinaryTree
 import com.sun.source.tree.IdentifierTree
 import com.sun.source.tree.LiteralTree
 import com.sun.source.tree.MemberSelectTree
@@ -36,9 +37,11 @@ import language.types.alias
 import language.types.dcastTT
 import language.types.defined
 import language.types.evoTTI
+import language.types.evolve
 import language.types.fields
 import language.types.lookup
 import language.types.not
+import language.types.resolve
 import language.types.sub
 import language.types.term
 import language.types.toTC
@@ -48,6 +51,7 @@ import language.types.upd
 import language.types.variables
 import rules.dsl.Judgement
 import rules.dsl.judgement
+import rules.utils.isLabel
 import rules.utils.toEid
 import javax.lang.model.type.TypeKind
 
@@ -64,6 +68,7 @@ typealias TDCastO = TUCastO
 data class TCall(val c: JavaClass, val eid: Eid, val tc: TC, val tt: TypeStateTree, val delta: Delta)
 typealias TAnyt = TCall
 typealias TAnytM = TUpdExt
+data class TEqL(val l: String, val fields: TypeEnv, val variables: TypeEnv)
 
 /**
  * data classes for input and output of the judgment
@@ -351,6 +356,66 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { expression.kind == Tree.Kind.LOGICAL_COMPLEMENT }
             right { Expr.Right(Bool, !it.fields, !it.variables) }
+        }
+    }
+
+    rule<Delta>("TEq") {
+        premise {
+            val equals = expression as BinaryTree
+            val e1 = EXPRESSION_JUDGMENT.derive(
+                copy(path = TreePath(path, equals.leftOperand), assign = false)
+            )
+            ensure(e1.tc !is TypeStateTree)
+            val e2Left =
+                Expr.Left(
+                    resolve(e1.fields),
+                    resolve(e1.variables),
+                    TreePath(path, equals.rightOperand),
+                    false,
+                    program
+                )
+            val e2Right = EXPRESSION_JUDGMENT.derive(e2Left)
+            ensure(e2Right.tc !is TypeStateTree)
+            ensure(e1.tc sub e2Right.tc || e2Right.tc sub e1.tc)
+            e2Right.fields to e2Right.variables
+        }
+        conclusion {
+            left {
+                val equals = expression as? BinaryTree ?: return@left false
+                expression.kind == Tree.Kind.EQUAL_TO &&
+                        !isLabel(TreePath(path, equals.leftOperand)) &&
+                        !isLabel(TreePath(path, equals.rightOperand))
+            }
+            right { Expr.Right(Bool, resolve(it.fields), resolve(it.variables)) }
+        }
+    }
+
+    rule<TEqL>("TEqL") {
+        premise {
+            val equals = expression as BinaryTree
+            val l = (equals.rightOperand as? MemberSelectTree)?.identifier?.toString()
+                ?: (equals.rightOperand as LiteralTree).value.toString()
+            val e = EXPRESSION_JUDGMENT.derive(
+                copy(path = TreePath(path, equals.leftOperand), assign = false)
+            )
+            val tc = VALUE_JUDGMENT.derive(Value(TreePath(path, equals.rightOperand), program))
+            ensure(e.tc == tc)
+            TEqL(l, e.fields, e.variables)
+        }
+        conclusion {
+            left {
+                val equals = expression as? BinaryTree ?: return@left false
+                expression.kind == Tree.Kind.EQUAL_TO &&
+                        !isLabel(TreePath(path, equals.leftOperand)) &&
+                        isLabel(TreePath(path, equals.rightOperand))
+            }
+            right {
+                Expr.Right(
+                    Bool,
+                    evolve(it.fields, it.l),
+                    evolve(it.variables, it.l)
+                )
+            }
         }
     }
 }
