@@ -4,8 +4,10 @@ import annotations.Requires
 import com.sun.source.util.TreePath
 import language.types.Bool
 import language.types.Double
+import language.types.EnumType
 import language.types.Integer
 import language.types.PT
+import language.types.RT
 import language.types.Shared
 import language.types.T
 import language.types.Top
@@ -32,7 +34,7 @@ abstract class JavaExecutable(
             TypeKind.DECLARED -> {
                 val typeElement = ctx.types.asElement(this) as TypeElement
                 when (typeElement.kind) {
-                    ElementKind.ENUM -> program.toJavaEnum(typeElement)
+                    ElementKind.ENUM -> EnumType(program.toJavaEnum(typeElement))
                     ElementKind.CLASS -> {
                         val c = program[typeElement.qualifiedName.toString()] ?: TODO()
                         if (annotation == null)
