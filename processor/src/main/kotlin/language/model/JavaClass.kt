@@ -20,34 +20,42 @@ sealed interface ClassRef {
 class JavaClass(
     val element: TypeElement,
     private val declaredProtocol: Protocol?,
-    private val program: Program,
-    private val ctx: JavaModelContext
+    private val program: Program
 ): ClassRef {
-    infix fun isSubClassOf(other: JavaClass) = ctx.types.isSubtype(element.asType(), other.element.asType())
+
+    infix fun isSubClassOf(other: JavaClass) =
+        program.types.isSubtype(element.asType(), other.element.asType())
+
     override val superclass by lazy {
-        (ctx.types.asElement(element.superclass) as? TypeElement)?.let { program[it.qualifiedName.toString()] }
+        (program.types.asElement(element.superclass) as? TypeElement)?.let(program::classByElement)
     }
+
     val constructors by lazy {
         element.enclosedElements
             .filter { it.kind == ElementKind.CONSTRUCTOR }
-            .map { JavaConstructor(it as ExecutableElement, program, ctx) }
+            .map { JavaConstructor(it as ExecutableElement, program) }
     }
+
     val meths by lazy {
         element.enclosedElements
             .filter { it.kind == ElementKind.METHOD }
-            .map { JavaMethod(it as ExecutableElement, program, ctx) }
+            .map { JavaMethod(it as ExecutableElement, program) }
     }
+
     val allMeths: List<JavaMethod> by lazy {
         if (superclass == null) meths else meths + superclass!!.allMeths
     }
+
     override val protocol: Protocol? by lazy {
         declaredProtocol ?: superclass?.protocol
     }
+
     val fields by lazy {
         element.enclosedElements
             .filter { it.kind == ElementKind.FIELD && Modifier.STATIC !in it.modifiers}
-            .map { JavaField(it as VariableElement, program, ctx) }
+            .map { JavaField(it as VariableElement, program) }
     }
+
     val qualifiedName = element.qualifiedName.toString()
 
     fun allF(fieldName: String): JavaClass? =

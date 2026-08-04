@@ -15,14 +15,12 @@ import language.types.Void
 import language.types.union
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
-import javax.lang.model.element.TypeElement
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 
 abstract class JavaExecutable(
     open val element: ExecutableElement,
-    protected val program: Program,
-    protected val ctx: JavaModelContext
+    protected val program: Program
 ) {
     protected fun TypeMirror.toRT(annotation: Iterable<String>? = null) =
         when(this.kind) {
@@ -31,11 +29,11 @@ abstract class JavaExecutable(
             TypeKind.DOUBLE -> Double
             TypeKind.VOID -> Void
             TypeKind.DECLARED -> {
-                val typeElement = ctx.types.asElement(this) as TypeElement
+                val typeElement = program.types.asElement(this)
                 when (typeElement.kind) {
-                    ElementKind.ENUM -> EnumType(program.toJavaEnum(typeElement))
+                    ElementKind.ENUM -> EnumType(program.enumByElement(typeElement))
                     ElementKind.CLASS -> {
-                        val c = program[typeElement.qualifiedName.toString()] ?: TODO()
+                        val c = program.classByElement(typeElement)
                         if (annotation == null)
                             c at Shared
                         else if (c.isLinear)
@@ -52,8 +50,8 @@ abstract class JavaExecutable(
         }
 
     val body by lazy {
-        val declaration = ctx.trees.getTree(element) ?: return@lazy null
-        val path = ctx.trees.getPath(element) ?: return@lazy null
+        val declaration = program.trees.getTree(element) ?: return@lazy null
+        val path = program.trees.getPath(element) ?: return@lazy null
         TreePath(path, declaration.body)
     }
 

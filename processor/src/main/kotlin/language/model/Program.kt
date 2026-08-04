@@ -1,59 +1,71 @@
 package language.model
 
+import annotations.Typestate
 import com.sun.source.util.TreePath
 import com.sun.source.util.Trees
-import protocol.ProtocolBinding
-import protocol.model.Protocol
+import processor.Loader
+import javax.lang.model.element.Element
 import javax.lang.model.element.ElementKind
 import javax.lang.model.element.ExecutableElement
 import javax.lang.model.element.TypeElement
 import javax.lang.model.element.VariableElement
+import javax.lang.model.util.Elements
+import javax.lang.model.util.Types
 
-class Program(private val trees: Trees) {
+class Program(
+    val trees: Trees,
+    val elements: Elements,
+    val types: Types,
+    private val loader: Loader
+) {
     private val classes = mutableMapOf<String, JavaClass>()
-    val allClasses = classes.values
+    private val enums = mutableMapOf<String, JavaEnum>()
 
-    // TODO get dovrebbe essere un getOrPut sotto per caricare classi in modo lazy
-    operator fun get(qualifiedName: String) = classes[qualifiedName]
-    fun add(javaClass: JavaClass) { classes[javaClass.qualifiedName] = javaClass }
+    fun classByElement(element: Element): JavaClass {
+        require(element.kind == ElementKind.CLASS)
+        val element = element as TypeElement
+        return classes.getOrPut(element.qualifiedName.toString()) {
+            JavaClass(
+                element,
+                element.getAnnotation(Typestate::class.java)
+                    ?.value
+                    ?.let(loader::load),
+                this
+            )
+        }
+    }
 
-    fun asJavaClass(path: TreePath) =
-        (trees.getElement(path) as? TypeElement)?.let { this[it.qualifiedName.toString()] }
+    fun classByPath(path: TreePath) = (trees.getElement(path) as? TypeElement)?.let(::classByElement)
 
-    fun asJavaConstructor(path: TreePath): JavaConstructor? {
+    fun constructorByPath(path: TreePath): JavaConstructor? {
         val element = trees.getElement(path) as? ExecutableElement
         return element
             ?.takeIf { it.kind == ElementKind.CONSTRUCTOR }
             ?.let { it.enclosingElement as? TypeElement }
-            ?.let { this[it.qualifiedName.toString()] }
+            ?.let(::classByElement)
             ?.constructors
             ?.singleOrNull { it.element == element }
     }
 
-    fun asJavaMethod(path: TreePath): JavaMethod? {
+    fun methodByPath(path: TreePath): JavaMethod? {
         val element = trees.getElement(path) as? ExecutableElement
         return element
             ?.takeIf { it.kind == ElementKind.METHOD }
-            ?.let { it.enclosingElement as? TypeElement }
-            ?.let { this[it.qualifiedName.toString()] }
+            ?.enclosingElement
+            ?.let(::classByElement)
             ?.meths
             ?.singleOrNull { it.element == element }
     }
 
-    private val protocols = mutableMapOf<Protocol, ProtocolBinding>()
-    operator fun get(protocol: Protocol) = protocols[protocol]
-    fun add(protocol: Protocol, binding: ProtocolBinding) { protocols[protocol] = binding }
-
-    private val enums = mutableMapOf<String, JavaEnum>()
-
-    fun toJavaEnum(element: TypeElement) : JavaEnum {
+    fun enumByElement(element: Element) : JavaEnum {
         require(element.kind == ElementKind.ENUM)
+        val element = element as TypeElement
         return enums.getOrPut(element.qualifiedName.toString()) { JavaEnum(element) }
     }
 
-    fun asJavaEnum(path: TreePath) =
+    fun enumByPath(path: TreePath) =
         (trees.getElement(path) as? VariableElement)
             ?.takeIf { it.kind == ElementKind.ENUM_CONSTANT }
             ?.let { it.enclosingElement as? TypeElement }
-            ?.let { enums.getOrPut(it.qualifiedName.toString()) { JavaEnum(it) } }
+            ?.let(::enumByElement)
 }

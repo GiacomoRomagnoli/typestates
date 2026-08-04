@@ -109,12 +109,12 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
     rule<TNew>("TNew") {
         premise {
             val newExpr = expression as NewClassTree
-            val c = program.asJavaClass(TreePath(path, newExpr.identifier)) ?: fail()
+            val c = program.classByPath(TreePath(path, newExpr.identifier)) ?: fail()
             ensure(assign || c.protocol?.let { term(U(it.initState)) } ?: true)
             val args = newExpr.arguments.map { TreePath(path, it) }
             val exprSeqL = ExprSeq.Left(fields, variables, args, true, program)
             val exprSeqR = EXPRESSION_SEQUENCE_JUDGMENT.derive(exprSeqL)
-            val constructor = program.asJavaConstructor(path) ?: fail()
+            val constructor = program.constructorByPath(path) ?: fail()
             ensure(exprSeqR.tcs.zip(constructor.pt).all { (tc, pt) -> tc sub toTC(pt) })
             TNew(c, exprSeqR.fields to exprSeqR.variables)
         }
@@ -222,14 +222,14 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val eL = Expr.Left(fields, variables, e, assign, program)
             val eR = EXPRESSION_JUDGMENT.derive(eL)
             val tt = eR.tc as? TypeStateTree ?: fail()
-            val c = program.asJavaClass(TreePath(path, cast.type)) ?: fail()
+            val c = program.classByPath(TreePath(path, cast.type)) ?: fail()
             ensure(tt.clazz isSubClassOf c)
             TUCastO(c, tt, eR.fields to eR.variables)
         }
         conclusion {
             left {
                 (expression as? TypeCastTree)
-                    ?.let{ program.asJavaClass(TreePath(path, it.type)) } != null
+                    ?.let{ program.classByPath(TreePath(path, it.type)) } != null
             }
             right { Expr.Right(ucastTT(it.tt, it.c), it.delta) }
         }
@@ -242,14 +242,14 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val eL = Expr.Left(fields, variables, e, assign, program)
             val eR = EXPRESSION_JUDGMENT.derive(eL)
             val tt = eR.tc as? TypeStateTree ?: fail()
-            val c = program.asJavaClass(TreePath(path, cast.type)) ?: fail()
+            val c = program.classByPath(TreePath(path, cast.type)) ?: fail()
             ensure(c isSubClassOf tt.clazz)
             ensure(c != tt.clazz)
             TDCastO(c, tt, eR.fields to eR.variables)
         }
         conclusion {
             left {
-                (expression as? TypeCastTree)?.let{ program.asJavaClass(TreePath(path, it.type)) } != null
+                (expression as? TypeCastTree)?.let{ program.classByPath(TreePath(path, it.type)) } != null
             }
             right { Expr.Right(dcastTT(it.tt, it.c), it.delta) }
         }
@@ -267,7 +267,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val args = invocation.arguments.map { TreePath(path, it) }
             val argsL = ExprSeq.Left(receiverR.fields, receiverR.variables, args, true, program)
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
-            val method = program.asJavaMethod(path) ?: fail()
+            val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
             ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
             val tt1 = evoTTI(tt, method.pSig)
@@ -299,7 +299,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val args = invocation.arguments.map { TreePath(path, it) }
             val argsL = ExprSeq.Left(receiverR.fields, receiverR.variables, args, true, program)
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
-            val method = program.asJavaMethod(path) ?: fail()
+            val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
             ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
             ensure(anytime(tt.clazz, method.pSig))
@@ -326,7 +326,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val args = invocation.arguments.map { TreePath(path, it) }
             val argsL = ExprSeq.Left(fields, variables, args, true, program)
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
-            val method = program.asJavaMethod(path) ?: fail()
+            val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
             ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
             ensure(anytime(c, method.pSig))
@@ -455,7 +455,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val e = EXPRESSION_JUDGMENT.derive(
                 copy(path = TreePath(path, instanceOf.expression), assign = false)
             )
-            val c = program.asJavaClass(TreePath(path,instanceOf.type)) ?: fail()
+            val c = program.classByPath(TreePath(path,instanceOf.type)) ?: fail()
             ensure(e.tc is TypeStateTree)
             ensure((e.tc as TypeStateTree).clazz isSubClassOf c)
             e.fields to e.variables

@@ -27,4 +27,4 @@ fun ExpressionTree.toEid(): Eid? =
     }
 
 fun Expr.Left.isLabel(path: TreePath) =
-    path.leaf.kind == Tree.Kind.BOOLEAN_LITERAL || program.asJavaEnum(path) != null
+    path.leaf.kind == Tree.Kind.BOOLEAN_LITERAL || program.enumByPath(path) != null

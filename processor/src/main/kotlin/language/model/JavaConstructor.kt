@@ -4,6 +4,5 @@ import javax.lang.model.element.ExecutableElement
 
 class JavaConstructor(
     override val element: ExecutableElement,
-    program: Program,
-    context: JavaModelContext
-) : JavaExecutable(element, program, context)
+    program: Program
+) : JavaExecutable(element, program)

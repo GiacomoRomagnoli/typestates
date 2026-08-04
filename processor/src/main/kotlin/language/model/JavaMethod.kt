@@ -11,9 +11,8 @@ import javax.lang.model.type.TypeMirror
 
 class JavaMethod(
     override val element: ExecutableElement,
-    program: Program,
-    ctx: JavaModelContext
-) : JavaExecutable(element, program, ctx) {
+    program: Program
+) : JavaExecutable(element, program) {
 
     private fun TypeMirror.arrayLevel(): Int {
         var current = this
@@ -26,7 +25,7 @@ class JavaMethod(
     }
 
     infix fun overrides(other: JavaMethod) =
-        ctx.elements.overrides(
+        program.elements.overrides(
             element,
             other.element,
             element.enclosingElement as TypeElement

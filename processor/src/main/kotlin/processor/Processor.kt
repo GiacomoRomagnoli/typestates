@@ -5,21 +5,23 @@ import annotations.Requires
 import annotations.Typestate
 import ast.parse
 import com.sun.source.util.Trees
-import language.model.JavaClass
 import language.model.JavaModelContext
 import language.model.Program
 import protocol.compile
-import rules.utils.chkOvr
-import rules.utils.chkProt
 import javax.annotation.processing.AbstractProcessor
-import javax.annotation.processing.RoundEnvironment
-import javax.lang.model.element.ElementKind
-import javax.lang.model.element.TypeElement
+import javax.lang.model.element.Element
 import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 
-class Processor: AbstractProcessor() {
-    val program = Program(Trees.instance(processingEnv))
+abstract class Processor: AbstractProcessor() {
+    protected val program =
+        Program(
+            Trees.instance(processingEnv),
+            processingEnv.elementUtils,
+            processingEnv.typeUtils,
+            ::load
+        )
+    protected val context = JavaModelContext.from(processingEnv)
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(
         Ensures::class.java.canonicalName,
@@ -27,40 +29,16 @@ class Processor: AbstractProcessor() {
         Typestate::class.java.canonicalName,
     )
 
-    override fun process(annotations: Set<TypeElement>, roundEnv: RoundEnvironment): Boolean {
-        roundEnv.classes.forEach { program.add(javaClassOf(it)) }
-        for(clazz in program.allClasses) {
-            if (clazz.isLinear)
-                if(!chkProt(clazz))
-                    emitError("chkProt failed for ${clazz.qualifiedName}")
-            if (clazz.superclass != null)
-                if(!chkOvr(clazz, clazz.superclass!!))
-                    emitError("chkOvr failed for ${clazz.qualifiedName}")
-        }
-        return true
-    }
+    protected fun load(path: String) =
+        processingEnv.filer.getResource(StandardLocation.CLASS_PATH, "", path)
+        .getCharContent(false)
+        .toString()
+        .let(::parse)
+        .let(::compile)
+        .also { it.errors.forEach { error -> emit(error.message) } }
+        .protocol
 
-    private val RoundEnvironment.classes
-        get() = rootElements.filter { it.kind == ElementKind.CLASS }.map { it as TypeElement }
 
-    private fun loadProtocol(clazz: TypeElement) =
-        clazz.getAnnotation(Typestate::class.java)?.let { annotation ->
-            val resource = processingEnv.filer.getResource(
-                StandardLocation.CLASS_PATH,
-                "",
-                annotation.value
-            ).getCharContent(false).toString()
-            val compilation = compile(parse(resource))
-            compilation.errors.forEach { emitError(it.message) }
-            program.add(compilation.protocol, compilation.binding)
-            compilation.protocol
-        }
-
-    private val ctx = JavaModelContext.from(processingEnv)
-
-    private fun javaClassOf(element: TypeElement) =
-        JavaClass(element,loadProtocol(element), program, ctx)
-
-    private fun emitError(msg: String) =
-        processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, msg)
+    protected fun emit(msg: String, element: Element? = null) =
+        processingEnv.messager.printMessage(Diagnostic.Kind.ERROR, msg, element)
 }
