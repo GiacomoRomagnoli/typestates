@@ -2,10 +2,10 @@ import annotations.Typestate;
 
 @Typestate("protocols/greeter.protocol")
 public class Greeter {
-    void sayHello() {
-        System.out.println("Hello");
+    void sayHello(int value) {
+        value = true;
     }
     void sayGoodbye() {
-        System.out.println("Goodbye");
+
     }
 }
