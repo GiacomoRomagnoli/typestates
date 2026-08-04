@@ -5,7 +5,6 @@ import annotations.Requires
 import annotations.Typestate
 import ast.parse
 import com.sun.source.util.Trees
-import language.model.JavaModelContext
 import language.model.Program
 import protocol.compile
 import javax.annotation.processing.AbstractProcessor
@@ -14,14 +13,14 @@ import javax.tools.Diagnostic
 import javax.tools.StandardLocation
 
 abstract class Processor: AbstractProcessor() {
-    protected val program =
+    protected val program by lazy {
         Program(
             Trees.instance(processingEnv),
             processingEnv.elementUtils,
             processingEnv.typeUtils,
             ::load
         )
-    protected val context = JavaModelContext.from(processingEnv)
+    }
 
     override fun getSupportedAnnotationTypes(): Set<String> = setOf(
         Ensures::class.java.canonicalName,
