@@ -8,6 +8,7 @@ import com.sun.source.util.TreePath
 import language.types.Eid
 import language.types.Receiver
 import rules.Expr
+import javax.lang.model.element.Name
 
 fun ExpressionTree.toEid(): Eid? =
     when (this) {
@@ -28,3 +29,5 @@ fun ExpressionTree.toEid(): Eid? =
 
 fun Expr.Left.isLabel(path: TreePath) =
     path.leaf.kind == Tree.Kind.BOOLEAN_LITERAL || program.enumByPath(path) != null
+
+fun Name.toEid() = Eid(toString(), Receiver.NONE)
