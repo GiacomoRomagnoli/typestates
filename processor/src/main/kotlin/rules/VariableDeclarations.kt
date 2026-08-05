@@ -23,5 +23,5 @@ object VarDecl {
 }
 
 val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
-
+    // TODO aggiungere regole: TVDeclO, TVDeclB, TVDeclF
 }
