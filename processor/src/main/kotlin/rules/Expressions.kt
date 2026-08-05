@@ -2,6 +2,7 @@ package rules
 
 import com.sun.source.tree.AssignmentTree
 import com.sun.source.tree.BinaryTree
+import com.sun.source.tree.ExpressionTree
 import com.sun.source.tree.IdentifierTree
 import com.sun.source.tree.InstanceOfTree
 import com.sun.source.tree.LiteralTree
@@ -103,6 +104,14 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { expression is LiteralTree || expression is MemberSelectTree }
             right { Expr.Right(it, fields, variables) }
+        }
+    }
+
+    rule("TId") {
+        premise { IDENTIFIER_JUDGEMENT.derive(this) }
+        conclusion {
+            left { (expression as? ExpressionTree)?.toEid() != null }
+            right { it }
         }
     }
 
