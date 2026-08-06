@@ -2,7 +2,11 @@ package rules
 
 import com.sun.source.util.TreePath
 import language.model.Program
+import language.types.Id
+import language.types.get
 import language.types.TypeEnv
+import language.types.Und
+import language.types.tt
 import rules.dsl.judgement
 
 // TODO aggiungere ambienti
@@ -23,5 +27,15 @@ object VarDecl {
 }
 
 val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
-    // TODO aggiungere regole: TVDeclO, TVDeclB, TVDeclF
+    // TODO aggiungere regole: TVDeclB, TVDeclF
+    rule("TVDeclO") {
+        premise {
+            ensure(variables[id] == null)
+            program.classByPath(type)!!
+        }
+        conclusion {
+            left { program.classByPath(type) != null }
+            right { VarDecl.Right(fields, variables + (Id(id) to tt(it, Und))) }
+        }
+    }
 }
