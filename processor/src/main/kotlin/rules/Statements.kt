@@ -21,7 +21,15 @@ import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
 
-private data class TVInitO(val c: JavaClass, val id: Eid, val tt1: TypeStateTree, val delta: Delta)
+private data class TVInitO(
+    val c: JavaClass,
+    val id: Eid,
+    val tt1: TypeStateTree,
+    val delta: Delta,
+    val bf: TypeEnv,
+    val bs: TypeEnv,
+    val ret: TypeEnv
+)
 
 object Stmt {
     data class Left(
@@ -88,15 +96,19 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
             val tt1 = ucastTT(tt, c1)
             val declDerivation = VARIABLE_DECLARATION_JUDGEMENT.derive(
                 VarDecl.Left(
-                    exprDerivation.fields,
-                    exprDerivation.variables,
-                    declaration,
-                    statement.name.toString(),
-                    f,
-                    program,
+                    exprDerivation.fields, exprDerivation.variables,
+                    breakFields, breakVariables, returnFields,
+                    declaration, statement.name.toString(),
+                    f, program,
                 )
             )
-            TVInitO(c, statement.name.toEid(), tt1, declDerivation.fields to declDerivation.variables)
+            ensure(returnFields == declDerivation.returnFields)
+            TVInitO(
+                c, statement.name.toEid(),
+                tt1, declDerivation.fields to declDerivation.variables,
+                declDerivation.breakFields, declDerivation.breakVariables,
+                declDerivation.returnFields,
+            )
         }
         conclusion {
             left {
@@ -104,7 +116,10 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                     ?.takeIf { it.initializer != null }
                     ?.let { program.classByPath(TreePath(path, it.type)) } != null
             }
-            right { withDelta(upd(it.c, it.id, it.tt1, it.delta)) }
+            right {
+                val upd = upd(it.c, it.id, it.tt1, it.delta)
+                Stmt.Right(upd.fields, upd.variables, it.bf, it.bs, it.ret)
+            }
         }
     }
 }
