@@ -8,6 +8,7 @@ import language.model.Program
 import language.model.isSubClassOf
 import language.types.Delta
 import language.types.Eid
+import language.types.RT
 import language.types.TypeEnv
 import language.types.TypeStateTree
 import language.types.fields
@@ -22,12 +23,15 @@ import rules.utils.toEid
 
 private data class TVInitO(val c: JavaClass, val id: Eid, val tt1: TypeStateTree, val delta: Delta)
 
-// TODO aggiungere ambienti
 object Stmt {
     data class Left(
         val fields: TypeEnv,
         val variables: TypeEnv,
+        val breakFields: TypeEnv,
+        val breakVariables: TypeEnv,
+        val returnFields: TypeEnv,
         val path: TreePath,
+        val returnType: RT,
         val program: Program,
         val f: Boolean = false
     ) {
@@ -37,12 +41,20 @@ object Stmt {
     data class Right(
         val fields: TypeEnv,
         val variables: TypeEnv,
-    ) {
-        constructor(delta: Delta): this(delta.fields, delta.variables)
-    }
+        val breakFields: TypeEnv,
+        val breakVariables: TypeEnv,
+        val returnFields: TypeEnv,
+    )
 }
 
-
+private fun Stmt.Left.withDelta(delta: Delta) =
+    Stmt.Right(
+        delta.fields,
+        delta.variables,
+        breakFields,
+        breakVariables,
+        returnFields
+    )
 
 val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
 
@@ -57,7 +69,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         }
         conclusion {
             left { statement is ExpressionStatementTree }
-            right { Stmt.Right(resolve(it.fields), resolve(it.variables)) }
+            right { withDelta(resolve(it.fields) to resolve(it.variables)) }
         }
     }
 
@@ -92,7 +104,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                     ?.takeIf { it.initializer != null }
                     ?.let { program.classByPath(TreePath(path, it.type)) } != null
             }
-            right { Stmt.Right(upd(it.c, it.id, it.tt1, it.delta)) }
+            right { withDelta(upd(it.c, it.id, it.tt1, it.delta)) }
         }
     }
 }

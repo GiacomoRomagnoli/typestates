@@ -30,10 +30,10 @@ import language.types.IntegerUnd
 import language.types.Null
 import language.types.Shared
 import language.types.TC
+import language.types.THIS
 import language.types.Top
 import language.types.TypeEnv
 import language.types.TypeStateTree
-import language.types.get
 import language.types.U
 import language.types.alias
 import language.types.dcastTT
@@ -124,7 +124,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val exprSeqL = ExprSeq.Left(fields, variables, args, true, program)
             val exprSeqR = EXPRESSION_SEQUENCE_JUDGMENT.derive(exprSeqL)
             val constructor = program.constructorByPath(path) ?: fail()
-            ensure(exprSeqR.tcs.zip(constructor.pt).all { (tc, pt) -> tc sub toTC(pt) })
+            ensure(exprSeqR.tcs.zip(constructor.pt).all { (tc, pt) -> tc sub toTC(pt.type) })
             TNew(c, exprSeqR.fields to exprSeqR.variables)
         }
         conclusion {
@@ -135,7 +135,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule<TUpdB>("TUpdB") {
         premise {
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
@@ -155,7 +155,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule<TUpdO>("TUpdO") {
         premise {
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val assignment = expression as AssignmentTree
             val e = TreePath(path, assignment.expression)
             val exprL = Expr.Left(fields, variables, e, true, program)
@@ -266,7 +266,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule<TCall>("TCall") {
         premise {
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val invocation = expression as MethodInvocationTree
             val select = invocation.methodSelect as MemberSelectTree
             val receiver = TreePath(TreePath(path, select), select.expression)
@@ -278,7 +278,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
             val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
-            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i].type) })
             val tt1 = evoTTI(tt, method.pSig)
             ensure(!(Top sub tt1.type))
             val tc = toTC(method.rt)
@@ -298,7 +298,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule<TAnyt>("TAnyt") {
         premise {
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val invocation = expression as MethodInvocationTree
             val select = invocation.methodSelect as MemberSelectTree
             val receiver = TreePath(TreePath(path, select), select.expression)
@@ -310,7 +310,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
             val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
-            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i].type) })
             ensure(anytime(tt.clazz, method.pSig))
             val tc = toTC(method.rt)
             ensure(assign || term(tc))
@@ -330,14 +330,14 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule<TAnytM>("TAnytM") {
         premise {
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val invocation = expression as MethodInvocationTree
             val args = invocation.arguments.map { TreePath(path, it) }
             val argsL = ExprSeq.Left(fields, variables, args, true, program)
             val argsR = EXPRESSION_SEQUENCE_JUDGMENT.derive(argsL)
             val method = program.methodByPath(path) ?: fail()
             ensure(argsR.tcs.size == method.pt.size)
-            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i]) })
+            ensure(argsR.tcs.indices.all { i -> argsR.tcs[i] sub toTC(method.pt[i].type) })
             ensure(anytime(c, method.pSig))
             val tc = toTC(method.rt)
             ensure(assign || term(tc))

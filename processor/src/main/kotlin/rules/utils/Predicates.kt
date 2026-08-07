@@ -34,8 +34,8 @@ fun chkOvr(clazz: JavaClass, superclass: JavaClass): Boolean {
             if (overriderRt is ClassType && overriddenRt is ClassType && !(overriderRt sub overriddenRt))
                 return false
            for (i in 0 until overrider.pt.size) {
-               val overriderPT = overrider.pt[i]
-               val overriddenPT = overridden.pt[i]
+               val overriderPT = overrider.pt[i].type
+               val overriddenPT = overridden.pt[i].type
                if (overriderPT is ClassType && overriddenPT is ClassType && !(overriddenPT sub overriderPT))
                    return false
            }

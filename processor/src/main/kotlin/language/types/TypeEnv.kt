@@ -5,11 +5,13 @@ import language.model.JavaClass
 sealed interface Cid { val id: String }
 data class FieldId(val c: JavaClass, override val id: String) : Cid
 data class Id(override val id: String) : Cid
+val THIS = Id("this")
 typealias TypeEnv = Map<Cid, TC>
 typealias Delta = Pair<TypeEnv, TypeEnv>
 
 operator fun JavaClass.plus(id: String) = FieldId(this, id)
 operator fun TypeEnv.get(id: String) = this[Id(id)]
+fun TypeEnv.bottom(): TypeEnv = mapValues { BottomTC }
 val Delta.fields get() = this.first
 val Delta.variables get() = this.second
 

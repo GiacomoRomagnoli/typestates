@@ -56,9 +56,9 @@ abstract class JavaExecutable(
     }
 
     val pt by lazy {
-        element.parameters.map { parameter ->
-            val annotation = parameter.getAnnotation(Requires::class.java)?.value?.toSet()
-            parameter.asType().toRT(annotation) as PT
+        element.parameters.map {
+            val annotation = it.getAnnotation(Requires::class.java)?.value?.toSet()
+            JavaParameter(it.simpleName.toString(),it.asType().toRT(annotation) as PT)
         }
     }
 }
