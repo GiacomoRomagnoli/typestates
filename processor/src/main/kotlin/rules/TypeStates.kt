@@ -4,10 +4,12 @@ import language.model.JavaClass
 import language.model.Program
 import language.types.TypeEnv
 import language.types.bottom
+import language.types.evolve
 import language.types.merge
 import language.types.resolve
 import language.types.restrict
 import language.types.sub
+import protocol.model.OutPutState
 import protocol.model.State
 import protocol.model.TypeState
 import rules.dsl.Judgement
@@ -97,6 +99,25 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
             conclusion {
                 left { unfolded && state is TypeState && state.isDroppable && !state.isEnd }
                 right { merge(it.merge(), resolve(fields)) }
+            }
+        }
+
+        rule<List<TypeEnv>>("TCh") {
+            premise {
+                val output = state as OutPutState
+                output.labels.map {
+                    TYPESTATE_DEFINITION_JUDGMENT.derive(
+                        TypeStateDef.Left(
+                            theta, evolve(fields, it),
+                            clazz, output[it]!!,
+                            program, false,
+                        )
+                    )
+                }
+            }
+            conclusion {
+                left { unfolded && state is OutPutState }
+                right { it.merge() }
             }
         }
     }
