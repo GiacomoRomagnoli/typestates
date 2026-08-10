@@ -4,7 +4,9 @@ import language.model.JavaClass
 import language.model.Program
 import language.types.TypeEnv
 import language.types.bottom
+import language.types.merge
 import language.types.resolve
+import language.types.restrict
 import language.types.sub
 import protocol.model.State
 import protocol.model.TypeState
@@ -58,6 +60,40 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
             conclusion {
                 left { !unfolded && state is TypeState && !state.isEnd && !theta.containsKey(state) }
                 right { it }
+            }
+        }
+
+        rule<List<TypeEnv>>("TBr") {
+            premise {
+                val u = state as TypeState
+                val fieldsResolved = resolve(fields)
+                u.transitions.map {
+                    val method = clazz.method(it.method) ?: fail()
+                    val owner = clazz.allM(method) ?: fail()
+                    val fieldsRestricted = restrict(fieldsResolved, owner)
+                    val methodFields = METHOD_JUDGEMENT.derive(
+                        Meth.Left(
+                            fieldsRestricted,
+                            method,
+                            program,
+                            owner
+                        )
+                    )
+                    TYPESTATE_DEFINITION_JUDGMENT.derive(
+                        TypeStateDef.Left(
+                            theta,
+                            (fieldsResolved - fieldsRestricted.keys) + methodFields,
+                            clazz,
+                            it.state,
+                            program,
+                            false,
+                        )
+                    )
+                }
+            }
+            conclusion {
+                left { unfolded && state is TypeState && !state.isDroppable && !state.isEnd }
+                right { it.reduce { env1, env2 -> merge(env1, env2) } }
             }
         }
 

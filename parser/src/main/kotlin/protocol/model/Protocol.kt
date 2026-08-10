@@ -23,7 +23,7 @@ class Protocol internal constructor(
     infix fun sub(other: Protocol) = initState simulates other.initState
 
     val transitions by lazy {
-        protIn.flatMap { it.methods.map { m -> Transition(m, it[m]!!) } }
+        protIn.flatMap { it.transitions }
     }
 
     val protIn by lazy {

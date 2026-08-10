@@ -61,6 +61,12 @@ class JavaClass(
     fun allF(fieldName: String): JavaClass? =
         if(fields.firstOrNull { it.name == fieldName } != null) this else superclass?.allF(fieldName)
 
+    fun method(pSig: Method): JavaMethod? =
+        meths.firstOrNull { it.pSig == pSig } ?: superclass?.method(pSig)
+
+    fun allM(method: JavaMethod): JavaClass? =
+        if (meths.any { it.element == method.element }) this else superclass?.allM(method)
+
     override fun equals(other: Any?): Boolean =
         this === other || other is JavaClass && qualifiedName == other.qualifiedName
 

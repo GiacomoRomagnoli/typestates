@@ -26,6 +26,10 @@ class TypeState internal constructor(
         outPutStateTransitions.values.toSet()
     }
 
+    val transitions by lazy {
+        methods.map { Transition(it, this[it]!!) }
+    }
+
     val typeStates by lazy {
         typeStateTransitions.values
             .mapNotNull { protocol[it] }
