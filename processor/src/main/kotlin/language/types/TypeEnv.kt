@@ -27,6 +27,8 @@ fun merge(typeEnv1: TypeEnv, typeEnv2: TypeEnv): TypeEnv =
     require(typeEnv1.size == typeEnv2.size && typeEnv1.keys.containsAll(typeEnv2.keys))
         .let { typeEnv1.mapValues { (cid, tc) -> mergeTC(tc, typeEnv2[cid]!!) } }
 
+fun List<TypeEnv>.merge() = reduce { env1, env2 -> merge(env1, env2) }
+
 fun restrict(typeEnv: TypeEnv, clazz: JavaClass): TypeEnv =
     typeEnv.filter { (cid, _) -> cid is FieldId && clazz isSubClassOf cid.c }
 

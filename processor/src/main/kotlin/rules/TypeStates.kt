@@ -11,7 +11,9 @@ import language.types.sub
 import protocol.model.State
 import protocol.model.TypeState
 import rules.dsl.Judgement
+import rules.dsl.RuleScope
 import rules.dsl.judgement
+import kotlin.collections.plus
 
 typealias Theta = Map<TypeState, TypeEnv>
 
@@ -24,6 +26,25 @@ object TypeStateDef {
         val program: Program,
         val unfolded: Boolean = false,
     )
+}
+
+private fun RuleScope<TypeStateDef.Left, List<TypeEnv>, TypeEnv>.deriveTransitions(left: TypeStateDef.Left): List<TypeEnv> {
+    val u = left.state as TypeState
+    val fieldsResolved = resolve(left.fields)
+    return u.transitions.map {
+        val method = left.clazz.method(it.method) ?: fail()
+        val owner = left.clazz.allM(method) ?: fail()
+        val fieldsRestricted = restrict(fieldsResolved, owner)
+        val methodFields = METHOD_JUDGEMENT.derive(
+            Meth.Left(fieldsRestricted, method, left.program, owner)
+        )
+        TYPESTATE_DEFINITION_JUDGMENT.derive(
+            TypeStateDef.Left(
+                left.theta, (fieldsResolved - fieldsRestricted.keys) + methodFields,
+                left.clazz, it.state, left.program, false,
+            )
+        )
+    }
 }
 
 val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
@@ -63,38 +84,19 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
             }
         }
 
-        rule<List<TypeEnv>>("TBr") {
-            premise {
-                val u = state as TypeState
-                val fieldsResolved = resolve(fields)
-                u.transitions.map {
-                    val method = clazz.method(it.method) ?: fail()
-                    val owner = clazz.allM(method) ?: fail()
-                    val fieldsRestricted = restrict(fieldsResolved, owner)
-                    val methodFields = METHOD_JUDGEMENT.derive(
-                        Meth.Left(
-                            fieldsRestricted,
-                            method,
-                            program,
-                            owner
-                        )
-                    )
-                    TYPESTATE_DEFINITION_JUDGMENT.derive(
-                        TypeStateDef.Left(
-                            theta,
-                            (fieldsResolved - fieldsRestricted.keys) + methodFields,
-                            clazz,
-                            it.state,
-                            program,
-                            false,
-                        )
-                    )
-                }
-            }
+        rule("TBr") {
+            premise { deriveTransitions(this) }
             conclusion {
                 left { unfolded && state is TypeState && !state.isDroppable && !state.isEnd }
-                right { it.reduce { env1, env2 -> merge(env1, env2) } }
+                right { it.merge() }
             }
         }
 
+        rule("TBrDrop") {
+            premise { deriveTransitions(this) }
+            conclusion {
+                left { unfolded && state is TypeState && state.isDroppable && !state.isEnd }
+                right { merge(it.merge(), resolve(fields)) }
+            }
+        }
     }
