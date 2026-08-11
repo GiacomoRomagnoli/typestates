@@ -112,7 +112,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         }
         conclusion {
             left {
-                !f && (statement as? VariableTree)
+                (statement as? VariableTree)
                     ?.takeIf { it.initializer != null }
                     ?.let { program.classByPath(TreePath(path, it.type)) } != null
             }
@@ -120,6 +120,23 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                 val upd = upd(it.c, it.id, it.tt1, it.delta)
                 Stmt.Right(upd.fields, upd.variables, it.bf, it.bs, it.ret)
             }
+        }
+    }
+
+    rule<VarDecl.Right>("TVDecl") {
+        premise {
+            val stmt = statement as VariableTree
+            val declaration = TreePath(path, stmt.type)
+            VARIABLE_DECLARATION_JUDGEMENT.derive(
+                VarDecl.Left(
+                    fields, variables, breakFields, breakVariables, returnFields,
+                    declaration, stmt.name.toString(), f, program
+                )
+            )
+        }
+        conclusion {
+            left { (statement as? VariableTree)?.initializer == null }
+            right { Stmt.Right(it.fields, it.variables, it.breakFields, it.breakVariables, it.returnFields) }
         }
     }
 }

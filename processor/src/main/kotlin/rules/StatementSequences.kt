@@ -17,6 +17,7 @@ object StmtSeq {
         val returnFields: TypeEnv,
         val returnType: RT,
         val program: Program,
+        val f: Boolean,
     )
 }
 
@@ -39,7 +40,7 @@ val STATEMENT_SEQUENCE_JUDGMENT: Judgement<StmtSeq.Left, Stmt.Right> = judgement
                     fields, variables,
                     breakFields, breakVariables, returnFields,
                     statements.first(),
-                    returnType, program
+                    returnType, program, f
                 )
             )
             STATEMENT_SEQUENCE_JUDGMENT.derive(

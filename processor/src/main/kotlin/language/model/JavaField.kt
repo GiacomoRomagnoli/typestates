@@ -7,7 +7,7 @@ class JavaField(
     private val program: Program
 ) {
     val name = element.simpleName.toString()
-    val jt: Nothing by lazy {
-        TODO("must return a class an enum or a primitive type")
+    val statement by lazy {
+        program.trees.getPath(element) ?: return@lazy null
     }
 }

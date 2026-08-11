@@ -52,7 +52,8 @@ abstract class JavaExecutable(
     val body by lazy {
         val declaration = program.trees.getTree(element) ?: return@lazy null
         val path = program.trees.getPath(element) ?: return@lazy null
-        TreePath(path, declaration.body)
+        val body = declaration.body ?: return@lazy null
+        TreePath(path, body)
     }
 
     val pt by lazy {
@@ -60,5 +61,9 @@ abstract class JavaExecutable(
             val annotation = it.getAnnotation(Requires::class.java)?.value?.toSet()
             JavaParameter(it.simpleName.toString(),it.asType().toRT(annotation) as PT)
         }
+    }
+
+    val owner: JavaClass by lazy {
+        program.classByElement(element.enclosingElement)
     }
 }
