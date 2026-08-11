@@ -1,10 +1,15 @@
 package language.types
 
 import language.model.ClassRef
+import language.model.JavaClass
 import language.model.JavaEnum
 import language.model.at
 import language.model.isSubClassOf
 
+/**
+ * interface that represents a java type
+ */
+sealed interface JT
 /**
  * interface that represents a type of the type checker
  */
@@ -20,20 +25,24 @@ sealed interface RT
  */
 sealed interface PT : RT
 
-data object Bool : PT, TC { val labels = listOf("true", "false") }
+data object Bool : PT, TC, JT { val labels = listOf("true", "false") }
 data object BoolUnd : TC
 
-data object Integer : PT, TC
+data object Integer : PT, TC, JT
 data object IntegerUnd : TC
 
-data object Double : PT, TC
+data object Double : PT, TC, JT
 data object DoubleUnd : TC
 
-data object Void : RT, TC
+data object Void : RT, TC, JT
 
 data object BottomTC : TC
 
-data class EnumType(val enum: JavaEnum, val und: Boolean = false) : PT, TC
+data class EnumType(val enum: JavaEnum, val und: Boolean = false) : PT, TC, JT
+
+data class JClass(val clazz: JavaClass) : JT
+
+val JT.isLinear get() = this is JClass && clazz.isLinear
 
 data class ClassType(val clazz: ClassRef, val type: T): PT {
     val isWellFormed by lazy {
@@ -80,6 +89,12 @@ fun toTC(rt: RT): TC =
     when (rt) {
         is ClassType -> tt(rt.clazz, rt.type)
         is TC -> rt
+    }
+
+fun toTC(jt: JT): TC =
+    when (jt) {
+        is JClass -> tt(jt.clazz, Shared)
+        is TC -> jt
     }
 
 fun TC.defined() =

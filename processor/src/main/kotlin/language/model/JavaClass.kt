@@ -56,6 +56,10 @@ class JavaClass(
             .map { JavaField(it as VariableElement, program) }
     }
 
+    val allFields: List<JavaField> by lazy {
+        if (superclass == null) fields else fields + superclass!!.allFields
+    }
+
     val qualifiedName = element.qualifiedName.toString()
 
     fun allF(fieldName: String): JavaClass? =
