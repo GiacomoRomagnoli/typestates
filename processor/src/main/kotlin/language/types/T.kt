@@ -65,8 +65,8 @@ infix fun T.sub(other: T): Boolean = when {
     this is Intersection -> this.t1 sub other || this.t2 sub other
     other is Union -> this sub other.t1 || this sub other.t2
     other is Intersection -> this sub other.t1 && this sub other.t2
-    this is Shared -> other is Shared
-    this is Null -> other is Null
+    this is Shared -> other is Shared || other is Null || other is Und
+    this is Null -> other is Null || other is Shared
     this is Und -> other is Und
     this is U -> when (other) {
         is Shared, is Null, is Und -> term(this)
