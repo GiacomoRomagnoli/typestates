@@ -86,7 +86,7 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
             }
         }
 
-        rule("TBr") {
+        rule<List<TypeEnv>>("TBr") {
             premise { deriveTransitions(this) }
             conclusion {
                 left { unfolded && state is TypeState && !state.isDroppable && !state.isEnd }
@@ -94,7 +94,7 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
             }
         }
 
-        rule("TBrDrop") {
+        rule<List<TypeEnv>>("TBrDrop") {
             premise { deriveTransitions(this) }
             conclusion {
                 left { unfolded && state is TypeState && state.isDroppable && !state.isEnd }

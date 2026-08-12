@@ -8,12 +8,13 @@ import io.kotest.matchers.shouldBe
 
 class CompilationTest: FunSpec({
     test("Greeter") {
-        val source = JavaFileObjects.forResource("classes/Greeter.java")
+        val greeter = JavaFileObjects.forResource("classes/Greeter.java")
+        val lifecycle = JavaFileObjects.forResource("classes/GreeterLifecycle.java")
         val compilation = Compiler.javac()
             .withProcessors(TypestateProcessor())
-            .compile(source)
+            .compile(greeter, lifecycle)
         compilation.diagnostics().forEach { println(it) }
-        compilation.status() shouldBe Compilation.Status.FAILURE
+        compilation.status() shouldBe Compilation.Status.SUCCESS
     }
 
     test("Car") {

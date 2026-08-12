@@ -135,7 +135,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
             )
         }
         conclusion {
-            left { (statement as? VariableTree)?.initializer == null }
+            left { statement is VariableTree && (statement as VariableTree).initializer == null }
             right { Stmt.Right(it.fields, it.variables, it.breakFields, it.breakVariables, it.returnFields) }
         }
     }
