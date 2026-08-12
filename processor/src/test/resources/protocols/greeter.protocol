@@ -1,6 +1,6 @@
 typestate GREETER {
     HELLO = {
-        sayHello(int) : GOODBYE
+        sayHello() : GOODBYE
     }
     GOODBYE = {
         sayGoodbye() : end
