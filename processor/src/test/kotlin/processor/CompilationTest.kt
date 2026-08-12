@@ -8,8 +8,8 @@ import io.kotest.matchers.shouldBe
 
 class CompilationTest: FunSpec({
     test("Greeter") {
-        val greeter = JavaFileObjects.forResource("classes/Greeter.java")
-        val lifecycle = JavaFileObjects.forResource("classes/GreeterLifecycle.java")
+        val greeter = JavaFileObjects.forResource("classes/greeter/Greeter.java")
+        val lifecycle = JavaFileObjects.forResource("classes/greeter/GreeterLifecycle.java")
         val compilation = Compiler.javac()
             .withProcessors(TypestateProcessor())
             .compile(greeter, lifecycle)
@@ -17,35 +17,22 @@ class CompilationTest: FunSpec({
         compilation.status() shouldBe Compilation.Status.SUCCESS
     }
 
-    test("Car") {
-        val source = JavaFileObjects.forResource("classes/Car.java")
+    test("Greeter reverse") {
+        val greeter = JavaFileObjects.forResource("classes/greeter/Greeter.java")
+        val lifecycle = JavaFileObjects.forResource("classes/greeter/GreeterReverseLifecycle.java")
         val compilation = Compiler.javac()
             .withProcessors(TypestateProcessor())
-            .compile(source)
+            .compile(greeter, lifecycle)
         compilation.diagnostics().forEach { println(it) }
-        compilation.status() shouldBe Compilation.Status.SUCCESS
+        compilation.status() shouldBe Compilation.Status.FAILURE
     }
 
-    test("Suv") {
-        val mode = JavaFileObjects.forResource("enums/Mode.java")
-        val car = JavaFileObjects.forResource("classes/Car.java")
-        val suv = JavaFileObjects.forResource("classes/Suv.java")
+    test("garbage Greeter") {
+        val greeter = JavaFileObjects.forResource("classes/greeter/Greeter.java")
+        val lifecycle = JavaFileObjects.forResource("classes/greeter/GarbageGreeter.java")
         val compilation = Compiler.javac()
             .withProcessors(TypestateProcessor())
-            .compile(mode, car, suv)
-        compilation.diagnostics().forEach { println(it) }
-        compilation.status() shouldBe Compilation.Status.SUCCESS
-    }
-
-    test("SuvService") {
-        val mode = JavaFileObjects.forResource("enums/Mode.java")
-        val car = JavaFileObjects.forResource("classes/Car.java")
-        val suv = JavaFileObjects.forResource("classes/Suv.java")
-        val carService = JavaFileObjects.forResource("classes/CarService.java")
-        val suvService = JavaFileObjects.forResource("classes/SuvService.java")
-        val compilation = Compiler.javac()
-            .withProcessors(TypestateProcessor())
-            .compile(mode, car, suv, carService, suvService)
+            .compile(greeter, lifecycle)
         compilation.diagnostics().forEach { println(it) }
         compilation.status() shouldBe Compilation.Status.FAILURE
     }
