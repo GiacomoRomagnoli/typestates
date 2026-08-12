@@ -16,6 +16,7 @@ object Clss {
     data class Left(
         val clazz: JavaClass,
         val program: Program,
+        val extends: Boolean = clazz.superclass?.qualifiedName != "java.lang.Object",
     )
 }
 
@@ -49,7 +50,25 @@ val CLASS_JUDGMENT: Judgement<Clss.Left, Unit> = judgement {
                 }
         }
         conclusion {
-            left { clazz.isLinear }
+            left { clazz.isLinear && !extends }
+            right { }
+        }
+    }
+
+    rule("TClassNL") {
+        premise {
+            ensure(clazz.allFields.none { it.jt.isLinear })
+            clazz.constructors.forEach { CONSTRUCTOR_JUDGMENT.derive(Cns(it, program)) }
+            val tf: TypeEnv = buildMap {
+                clazz.allFields.forEach { put(FieldId(it.owner, it.name), toTC(it.jt)) }
+            }
+            clazz.meths.forEach {
+                val tf1 = METHOD_JUDGEMENT.derive(Meth.Left(tf, it, program, clazz))
+                ensure(tf == tf1)
+            }
+        }
+        conclusion {
+            left { !clazz.isLinear && !extends }
             right { }
         }
     }

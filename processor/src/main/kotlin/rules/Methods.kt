@@ -46,7 +46,8 @@ val METHOD_JUDGEMENT: Judgement<Meth.Left, TypeEnv> = judgement {
                     returnFields = returnFields,
                     statements = statements,
                     returnType = Void,
-                    program = program
+                    program = program,
+                    f = false
                 )
             )
             ensure(derivation.breakFields == breakFields)
