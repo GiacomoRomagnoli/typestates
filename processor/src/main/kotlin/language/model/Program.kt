@@ -35,7 +35,8 @@ class Program(
         }
     }
 
-    fun classByPath(path: TreePath) = (trees.getElement(path) as? TypeElement)?.let(::classByElement)
+    fun classByPath(path: TreePath) =
+        trees.getElement(path)?.takeIf { it.kind == ElementKind.CLASS }?.let(::classByElement)
 
     fun constructorByPath(path: TreePath): JavaConstructor? {
         val element = trees.getElement(path) as? ExecutableElement
