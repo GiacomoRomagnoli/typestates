@@ -12,44 +12,51 @@ import rules.dsl.judgement
 
 object VarDecl {
     data class Left(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val breakFields: TypeEnv,
-        val breakVariables: TypeEnv,
-        val returnFields: TypeEnv,
-        val type: TreePath,
-        val id: String,
-        val f: Boolean,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val Tbf: TypeEnv,
+        val Tbs: TypeEnv,
+        val Tret: TypeEnv,
         val program: Program,
+        val f: Boolean,
+        val jt: TreePath,
+        val id: String,
     )
 
     data class Right(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val breakFields: TypeEnv,
-        val breakVariables: TypeEnv,
-        val returnFields: TypeEnv,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val Tbf: TypeEnv,
+        val Tbs: TypeEnv,
+        val Tret: TypeEnv,
     )
 }
 
 val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
-    // TODO aggiungere regole: TVDeclB, TVDeclF
     rule("TVDeclO") {
         premise {
-            ensure(variables[id] == null)
-            program.classByPath(type)!!
+            ensure(Ts[id] == null)
+            program.classByPath(jt)!!
         }
         conclusion {
-            left { program.classByPath(type) != null }
-            right {
-                VarDecl.Right(
-                    fields,
-                    variables + (Id(id) to tt(it, Und)),
-                    breakFields,
-                    breakVariables + (Id(id) to BottomTC),
-                    returnFields
-                )
-            }
+            left { !f && program.classByPath(jt) != null }
+            right { VarDecl.Right(Tf, Ts + (Id(id) to tt(it, Und)), Tbf, Tbs + (Id(id) to BottomTC), Tret) }
+        }
+    }
+
+    rule("TVDeclB") {
+        premise {}
+        conclusion {
+            left { !f && program.classByPath(jt) == null }
+            right { TODO() }
+        }
+    }
+
+    rule("TVDeclF") {
+        premise {  }
+        conclusion {
+            left { true }
+            right { TODO() }
         }
     }
 }

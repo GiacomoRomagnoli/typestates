@@ -39,25 +39,25 @@ private data class TVInitO(
 
 object Stmt {
     data class Left(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val breakFields: TypeEnv,
-        val breakVariables: TypeEnv,
-        val returnFields: TypeEnv,
-        val path: TreePath,
-        val rt: RT,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val Tbf: TypeEnv,
+        val Tbs: TypeEnv,
+        val Tret: TypeEnv,
         val program: Program,
-        val f: Boolean = false
+        val rt: RT,
+        val f: Boolean = false,
+        val path: TreePath,
     ) {
-        val statement get() = path.leaf
+        val stmt get() = path.leaf
     }
 
     data class Right(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val breakFields: TypeEnv,
-        val breakVariables: TypeEnv,
-        val returnFields: TypeEnv,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val Tbf: TypeEnv,
+        val Tbs: TypeEnv,
+        val Tret: TypeEnv,
     )
 }
 
@@ -65,60 +65,48 @@ private fun Stmt.Left.withDelta(delta: Delta) =
     Stmt.Right(
         delta.fields,
         delta.variables,
-        breakFields,
-        breakVariables,
-        returnFields
+        Tbf,
+        Tbs,
+        Tret
     )
 
 val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
 
     rule<Delta>("TExp") {
         premise {
-            val stmt = statement as ExpressionStatementTree
+            val stmt = stmt as ExpressionStatementTree
             val expr = TreePath(path, stmt.expression)
             val result = EXPRESSION_JUDGMENT.derive(
-                Expr.Left(fields, variables, expr, false, program)
+                Expr.Left(Tf, Ts, expr, false, program)
             )
-            result.fields to result.variables
+            result.Tf to result.Ts
         }
         conclusion {
-            left { statement is ExpressionStatementTree }
+            left { stmt is ExpressionStatementTree }
             right { withDelta(resolve(it.fields) to resolve(it.variables)) }
         }
     }
 
     rule<TVInitO>("TVInitO") {
         premise {
-            val statement = statement as VariableTree
+            val statement = stmt as VariableTree
             val expression = TreePath(path, statement.initializer)
-            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
-            val exprDerivation = EXPRESSION_JUDGMENT.derive(
-                Expr.Left(fields, variables, expression, true, program)
-            )
-            val tt = exprDerivation.tc as? TypeStateTree ?: fail()
-            val declaration = TreePath(path, statement.type)
-            val c1 = program.classByPath(declaration) ?: fail()
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, expression, true, program))
+            val tt = eJdg.tc as? TypeStateTree ?: fail()
+            val jt = TreePath(path, statement.type)
+            val c1 = program.classByPath(jt) ?: fail()
             ensure(tt.clazz isSubClassOf c1)
             val tt1 = ucastTT(tt, c1)
-            val declDerivation = VARIABLE_DECLARATION_JUDGEMENT.derive(
-                VarDecl.Left(
-                    exprDerivation.fields, exprDerivation.variables,
-                    breakFields, breakVariables, returnFields,
-                    declaration, statement.name.toString(),
-                    f, program,
-                )
+            val declJdg = VARIABLE_DECLARATION_JUDGEMENT.derive(
+                VarDecl.Left(eJdg.Tf, eJdg.Ts, Tbf, Tbs, Tret, program, f, jt, statement.name.toString())
             )
-            ensure(returnFields == declDerivation.returnFields)
-            TVInitO(
-                c, statement.name.toEid(),
-                tt1, declDerivation.fields to declDerivation.variables,
-                declDerivation.breakFields, declDerivation.breakVariables,
-                declDerivation.returnFields,
-            )
+            ensure(Tret == declJdg.Tret)
+            TVInitO(c, statement.name.toEid(), tt1, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
         }
         conclusion {
             left {
-                (statement as? VariableTree)
+                (stmt as? VariableTree)
                     ?.takeIf { it.initializer != null }
                     ?.let { program.classByPath(TreePath(path, it.type)) } != null
             }
@@ -131,38 +119,30 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
 
     rule<VarDecl.Right>("TVDecl") {
         premise {
-            val stmt = statement as VariableTree
-            val declaration = TreePath(path, stmt.type)
+            val stmt = stmt as VariableTree
+            val jt = TreePath(path, stmt.type)
             VARIABLE_DECLARATION_JUDGEMENT.derive(
-                VarDecl.Left(
-                    fields, variables, breakFields, breakVariables, returnFields,
-                    declaration, stmt.name.toString(), f, program
-                )
+                VarDecl.Left(Tf, Ts, Tbf, Tbs, Tret, program, f, jt, stmt.name.toString())
             )
         }
         conclusion {
-            left { statement is VariableTree && (statement as VariableTree).initializer == null }
-            right { Stmt.Right(it.fields, it.variables, it.breakFields, it.breakVariables, it.returnFields) }
+            left { stmt is VariableTree && (stmt as VariableTree).initializer == null }
+            right { Stmt.Right(it.Tf, it.Ts, it.Tbf, it.Tbs, it.Tret) }
         }
     }
 
     rule("TRet") {
         premise {
-            val ret = statement as ReturnTree
+            val ret = stmt as ReturnTree
             val e = TreePath(path, ret.expression)
-            val jdg = EXPRESSION_JUDGMENT.derive(Expr.Left(fields, variables, e, true, program))
+            val jdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, true, program))
             ensure(jdg.tc sub toTC(rt))
-            ensure(term(resolve(jdg.variables)))
-            jdg.fields
+            ensure(term(resolve(jdg.Ts)))
+            jdg.Tf
         }
         conclusion {
-            left { statement is ReturnTree && (statement as ReturnTree).expression != null }
-            right {
-                Stmt.Right(
-                    fields.bottom(), variables.bottom(), breakFields, breakVariables,
-                    merge(returnFields, it)
-                )
-            }
+            left { stmt is ReturnTree && (stmt as ReturnTree).expression != null }
+            right { Stmt.Right(Tf.bottom(), Ts.bottom(), Tbf, Tbs, merge(Tret, it)) }
         }
     }
 }

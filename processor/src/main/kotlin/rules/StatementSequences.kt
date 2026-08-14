@@ -9,15 +9,15 @@ import rules.dsl.judgement
 
 object StmtSeq {
     data class Left(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val statements: List<TreePath>,
-        val breakFields: TypeEnv,
-        val breakVariables: TypeEnv,
-        val returnFields: TypeEnv,
-        val returnType: RT,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val Tbf: TypeEnv,
+        val Tbs: TypeEnv,
+        val Tret: TypeEnv,
+        val rt: RT,
         val program: Program,
         val f: Boolean,
+        val stmts: List<TreePath>,
     )
 }
 
@@ -26,36 +26,29 @@ val STATEMENT_SEQUENCE_JUDGMENT: Judgement<StmtSeq.Left, Stmt.Right> = judgement
     rule("TEmpty") {
         premise {  }
         conclusion {
-            left { statements.isEmpty() }
-            right {
-                Stmt.Right(fields, variables, breakFields, breakVariables, returnFields)
-            }
+            left { stmts.isEmpty() }
+            right { Stmt.Right(Tf, Ts, Tbf, Tbs, Tret) }
         }
     }
 
     rule("TSeqSt") {
         premise {
             val head = STATEMENT_JUDGMENT.derive(
-                Stmt.Left(
-                    fields, variables,
-                    breakFields, breakVariables, returnFields,
-                    statements.first(),
-                    returnType, program, f
-                )
+                Stmt.Left(Tf, Ts, Tbf, Tbs, Tret, program, rt, f,stmts.first())
             )
             STATEMENT_SEQUENCE_JUDGMENT.derive(
                 copy(
-                    fields = head.fields,
-                    variables = head.variables,
-                    breakFields = head.breakFields,
-                    breakVariables = head.breakVariables,
-                    returnFields = head.returnFields,
-                    statements = statements.drop(1)
+                    Tf = head.Tf,
+                    Ts = head.Ts,
+                    Tbf = head.Tbf,
+                    Tbs = head.Tbs,
+                    Tret = head.Tret,
+                    stmts = stmts.drop(1)
                 )
             )
         }
         conclusion {
-            left { statements.isNotEmpty() }
+            left { stmts.isNotEmpty() }
             right { it }
         }
     }

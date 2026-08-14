@@ -30,33 +30,30 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 val fields = constructor.owner.fields.map { it.statement ?: fail() }
                 val fieldR = STATEMENT_SEQUENCE_JUDGMENT.derive(
                     StmtSeq.Left(
-                        emptyMap(), ts, fields,
-                        emptyMap(), emptyMap(), emptyMap(),
-                        Void, program, f = true
+                        emptyMap(), ts, emptyMap(),
+                        emptyMap(), emptyMap(),
+                        Void, program, true,
+                        fields
                     )
                 )
-                val tf = fieldR.fields
+                val tf = fieldR.Tf
                 val tbf = tf.bottom()
                 val tret = tf.bottom()
                 ts = ts + constructor.pt.map { it.name to toTC(it.type) }
                 val tbs = ts.bottom()
                 val bodyPath = constructor.body ?: fail()
                 val body = bodyPath.leaf as? BlockTree ?: fail()
-                val statements = body.statements
+                val stmts = body.statements
                     .drop(if (body.statements.firstOrNull()?.isSuperCall() == true) 1 else 0)
                     .map { TreePath(bodyPath, it) }
                 val bodyR = STATEMENT_SEQUENCE_JUDGMENT.derive(
-                    StmtSeq.Left(
-                        tf, ts, statements,
-                        tbf, tbs, tret,
-                        Void, program, f = false
-                    )
+                    StmtSeq.Left(tf, ts, tbf, tbs, tret, Void, program, false, stmts)
                 )
-                ensure(bodyR.breakFields == tbf)
-                ensure(bodyR.returnFields == tret)
-                ensure(bodyR.breakVariables == bodyR.breakVariables.bottom())
-                ensure(term(bodyR.variables))
-                bodyR.fields
+                ensure(bodyR.Tbf == tbf)
+                ensure(bodyR.Tret == tret)
+                ensure(bodyR.Tbs == bodyR.Tbs.bottom())
+                ensure(term(bodyR.Ts))
+                bodyR.Tf
             }
             conclusion {
                 left { constructor.owner.superclass?.qualifiedName == "java.lang.Object" }

@@ -10,17 +10,17 @@ import rules.dsl.judgement
 
 object ExprSeq {
     data class Left(
-        val fields: TypeEnv,
-        val variables: TypeEnv,
-        val expressions: List<TreePath>,
-        val assign: Boolean,
+        val Tf: TypeEnv,
+        val Ts: TypeEnv,
+        val a: Boolean,
         val program: Program,
+        val exprs: List<TreePath>,
         val tcs: List<TC> = emptyList()
     )
     data class Right(
         val tcs: List<TC>,
-        val fields: TypeEnv,
-        val variables: TypeEnv
+        val Tf: TypeEnv,
+        val Ts: TypeEnv
     )
 }
 
@@ -30,25 +30,25 @@ val EXPRESSION_SEQUENCE_JUDGMENT: Judgement<ExprSeq.Left, ExprSeq.Right> =
         rule("TEmptyExp") {
             premise {  }
             conclusion {
-                left { expressions.isEmpty() }
-                right { ExprSeq.Right(tcs, fields, variables) }
+                left { exprs.isEmpty() }
+                right { ExprSeq.Right(tcs, Tf, Ts) }
             }
         }
 
         rule("TSeqExp") {
             premise {
-                val exprL = Expr.Left(fields, variables, expressions.first(), assign, program)
+                val exprL = Expr.Left(Tf, Ts, exprs.first(), a, program)
                 val exprR = EXPRESSION_JUDGMENT.derive(exprL)
                 val exprSeqL = copy(
-                    fields = resolve(exprR.fields),
-                    variables = resolve(exprR.variables),
-                    expressions = expressions.drop(1),
+                    Tf = resolve(exprR.Tf),
+                    Ts = resolve(exprR.Ts),
+                    exprs = exprs.drop(1),
                     tcs = tcs + exprR.tc
                 )
                 EXPRESSION_SEQUENCE_JUDGMENT.derive(exprSeqL)
             }
             conclusion {
-                left { expressions.isNotEmpty() }
+                left { exprs.isNotEmpty() }
                 right { it }
             }
         }

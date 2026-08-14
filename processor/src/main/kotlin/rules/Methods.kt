@@ -18,7 +18,7 @@ import rules.dsl.judgement
 
 object Meth {
     data class Left(
-        val fields: TypeEnv,
+        val Tf: TypeEnv,
         val method: JavaMethod,
         val program: Program,
         val c: JavaClass
@@ -28,33 +28,23 @@ object Meth {
 val METHOD_JUDGEMENT: Judgement<Meth.Left, TypeEnv> = judgement {
     rule("TMeth1") {
         premise {
-            val variables: TypeEnv = buildMap {
+            val Ts: TypeEnv = buildMap {
                 put(THIS, tt(c, Shared))
                 method.pt.forEach { put(it.name, toTC(it.type)) }
             }
-            val breakFields = fields.bottom()
-            val returnFields = fields.bottom()
-            val breakVariables = variables.bottom()
+            val Tbf = Tf.bottom()
+            val Tret = Tf.bottom()
+            val Tbs = Ts.bottom()
             val body = method.body ?: fail()
-            val statements = (body.leaf as BlockTree).statements.map { TreePath(body, it) }
-            val derivation = STATEMENT_SEQUENCE_JUDGMENT.derive(
-                StmtSeq.Left(
-                    fields = fields,
-                    variables = variables,
-                    breakFields = breakFields,
-                    breakVariables = breakVariables,
-                    returnFields = returnFields,
-                    statements = statements,
-                    returnType = Void,
-                    program = program,
-                    f = false
-                )
+            val stmts = (body.leaf as BlockTree).statements.map { TreePath(body, it) }
+            val jdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
+                StmtSeq.Left(Tf, Ts, Tbf, Tbs, Tret, Void, program, false, stmts)
             )
-            ensure(derivation.breakFields == breakFields)
-            ensure(derivation.returnFields == returnFields)
-            ensure(derivation.breakVariables == derivation.breakVariables.bottom())
-            ensure(term(derivation.variables))
-            derivation.fields
+            ensure(jdg.Tbf == Tbf)
+            ensure(jdg.Tret == Tret)
+            ensure(jdg.Tbs == jdg.Tbs.bottom())
+            ensure(term(jdg.Ts))
+            jdg.Tf
         }
         conclusion {
             left { method.rt == Void }
@@ -64,33 +54,23 @@ val METHOD_JUDGEMENT: Judgement<Meth.Left, TypeEnv> = judgement {
 
     rule("TMeth2") {
         premise {
-            val variables: TypeEnv = buildMap {
+            val Ts: TypeEnv = buildMap {
                 put(THIS, tt(c, Shared))
                 method.pt.forEach { put(it.name, toTC(it.type)) }
             }
-            val breakFields = fields.bottom()
-            val returnFields = fields.bottom()
-            val breakVariables = variables.bottom()
+            val Tbf = Tf.bottom()
+            val Tret = Tf.bottom()
+            val Tbs = Ts.bottom()
             val body = method.body ?: fail()
-            val statements = (body.leaf as BlockTree).statements.map { TreePath(body, it) }
-            val derivation = STATEMENT_SEQUENCE_JUDGMENT.derive(
-                StmtSeq.Left(
-                    fields = fields,
-                    variables = variables,
-                    breakFields = breakFields,
-                    breakVariables = breakVariables,
-                    returnFields = returnFields,
-                    statements = statements,
-                    returnType = method.rt,
-                    program = program,
-                    f = false
-                )
+            val stmts = (body.leaf as BlockTree).statements.map { TreePath(body, it) }
+            val jdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
+                StmtSeq.Left(Tf, Ts, Tbf, Tbs, Tret, method.rt, program, false, stmts,)
             )
-            ensure(derivation.fields == derivation.fields.bottom())
-            ensure(derivation.variables == derivation.variables.bottom())
-            ensure(derivation.breakFields == breakFields)
-            ensure(derivation.breakVariables == derivation.breakVariables.bottom())
-            derivation.returnFields
+            ensure(jdg.Tf == jdg.Tf.bottom())
+            ensure(jdg.Ts == jdg.Ts.bottom())
+            ensure(jdg.Tbf == Tbf)
+            ensure(jdg.Tbs == jdg.Tbs.bottom())
+            jdg.Tret
         }
         conclusion {
             left { method.rt != Void}
