@@ -1,6 +1,7 @@
 package rules
 
 import com.sun.source.tree.ExpressionStatementTree
+import com.sun.source.tree.ReturnTree
 import com.sun.source.tree.VariableTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
@@ -9,11 +10,16 @@ import language.model.isSubClassOf
 import language.types.Delta
 import language.types.Eid
 import language.types.RT
+import language.types.THIS
 import language.types.TypeEnv
 import language.types.TypeStateTree
+import language.types.bottom
 import language.types.fields
-import language.types.get
+import language.types.merge
 import language.types.resolve
+import language.types.sub
+import language.types.term
+import language.types.toTC
 import language.types.ucastTT
 import language.types.upd
 import language.types.variables
@@ -39,7 +45,7 @@ object Stmt {
         val breakVariables: TypeEnv,
         val returnFields: TypeEnv,
         val path: TreePath,
-        val returnType: RT,
+        val rt: RT,
         val program: Program,
         val f: Boolean = false
     ) {
@@ -85,7 +91,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         premise {
             val statement = statement as VariableTree
             val expression = TreePath(path, statement.initializer)
-            val c = (variables["this"] as TypeStateTree).clazz as JavaClass
+            val c = (variables[THIS] as TypeStateTree).clazz as JavaClass
             val exprDerivation = EXPRESSION_JUDGMENT.derive(
                 Expr.Left(fields, variables, expression, true, program)
             )
@@ -137,6 +143,26 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         conclusion {
             left { statement is VariableTree && (statement as VariableTree).initializer == null }
             right { Stmt.Right(it.fields, it.variables, it.breakFields, it.breakVariables, it.returnFields) }
+        }
+    }
+
+    rule("TRet") {
+        premise {
+            val ret = statement as ReturnTree
+            val e = TreePath(path, ret.expression)
+            val jdg = EXPRESSION_JUDGMENT.derive(Expr.Left(fields, variables, e, true, program))
+            ensure(jdg.tc sub toTC(rt))
+            ensure(term(resolve(jdg.variables)))
+            jdg.fields
+        }
+        conclusion {
+            left { statement is ReturnTree && (statement as ReturnTree).expression != null }
+            right {
+                Stmt.Right(
+                    fields.bottom(), variables.bottom(), breakFields, breakVariables,
+                    merge(returnFields, it)
+                )
+            }
         }
     }
 }
