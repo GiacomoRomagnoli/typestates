@@ -64,9 +64,14 @@ class Program(
         return enums.getOrPut(element.qualifiedName.toString()) { JavaEnum(element) }
     }
 
-    fun enumByPath(path: TreePath) =
+    fun enumByValuePath(path: TreePath) =
         (trees.getElement(path) as? VariableElement)
             ?.takeIf { it.kind == ElementKind.ENUM_CONSTANT }
             ?.let { it.enclosingElement as? TypeElement }
+            ?.let(::enumByElement)
+
+    fun enumByTypePath(path: TreePath) =
+        (trees.getElement(path) as? TypeElement)
+            ?.takeIf { it.kind == ElementKind.ENUM }
             ?.let(::enumByElement)
 }

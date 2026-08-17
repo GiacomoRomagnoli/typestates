@@ -1,14 +1,20 @@
 package rules
 
+import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.util.TreePath
 import language.model.Program
+import language.types.BoolUnd
 import language.types.BottomTC
+import language.types.DoubleUnd
+import language.types.EnumType
 import language.types.Id
+import language.types.IntegerUnd
 import language.types.get
 import language.types.TypeEnv
 import language.types.Und
 import language.types.tt
 import rules.dsl.judgement
+import javax.lang.model.type.TypeKind
 
 object VarDecl {
     data class Left(
@@ -45,10 +51,21 @@ val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
     }
 
     rule("TVDeclB") {
-        premise {}
+        premise {
+            ensure(Ts[id] == null)
+            when (val t = jt.leaf) {
+                is PrimitiveTypeTree -> when (t.primitiveTypeKind) {
+                    TypeKind.BOOLEAN -> BoolUnd
+                    TypeKind.INT -> IntegerUnd
+                    TypeKind.DOUBLE -> DoubleUnd
+                    else -> fail()
+                }
+                else -> program.enumByTypePath(jt)?.let { EnumType(it, true) } ?: fail()
+            }
+        }
         conclusion {
             left { !f && program.classByPath(jt) == null }
-            right { TODO() }
+            right { VarDecl.Right(Tf, Ts + (Id(id) to it), Tbf, Tbs + (Id(id) to BottomTC), Tret) }
         }
     }
 

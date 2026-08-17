@@ -31,7 +31,7 @@ fun ExpressionTree.toEid(): Eid? =
     }
 
 fun Expr.Left.isLabel(path: TreePath) =
-    path.leaf.kind == Tree.Kind.BOOLEAN_LITERAL || program.enumByPath(path) != null
+    path.leaf.kind == Tree.Kind.BOOLEAN_LITERAL || program.enumByValuePath(path) != null
 
 fun Name.toEid() = Eid(toString(), Receiver.NONE)
 

@@ -49,7 +49,7 @@ val VALUE_JUDGMENT = judgement<Value, TC> {
 
     rule("TEnumVal") {
         premise {
-            val enum = program.enumByPath(path) ?: fail()
+            val enum = program.enumByValuePath(path) ?: fail()
             val l = (value as MemberSelectTree).identifier.toString()
             ensure(l in enum.labels)
             enum
