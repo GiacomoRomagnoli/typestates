@@ -1,20 +1,26 @@
 package rules
 
 import com.sun.source.tree.ExpressionStatementTree
+import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.ReturnTree
 import com.sun.source.tree.VariableTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
 import language.model.isSubClassOf
+import language.types.Bool
 import language.types.Delta
+import language.types.Double
 import language.types.Eid
+import language.types.EnumType
+import language.types.Integer
 import language.types.RT
+import language.types.TC
 import language.types.THIS
 import language.types.TypeEnv
 import language.types.TypeStateTree
 import language.types.bottom
-import language.types.fields
+import language.types.Tf
 import language.types.merge
 import language.types.resolve
 import language.types.sub
@@ -22,15 +28,16 @@ import language.types.term
 import language.types.toTC
 import language.types.ucastTT
 import language.types.upd
-import language.types.variables
+import language.types.Ts
 import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
+import javax.lang.model.type.TypeKind
 
-private data class TVInitO(
+private data class TVInit(
     val c: JavaClass,
     val id: Eid,
-    val tt1: TypeStateTree,
+    val tc: TC,
     val delta: Delta,
     val bf: TypeEnv,
     val bs: TypeEnv,
@@ -63,8 +70,8 @@ object Stmt {
 
 private fun Stmt.Left.withDelta(delta: Delta) =
     Stmt.Right(
-        delta.fields,
-        delta.variables,
+        delta.Tf,
+        delta.Ts,
         Tbf,
         Tbs,
         Tret
@@ -83,11 +90,11 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         }
         conclusion {
             left { stmt is ExpressionStatementTree }
-            right { withDelta(resolve(it.fields) to resolve(it.variables)) }
+            right { withDelta(resolve(it.Tf) to resolve(it.Ts)) }
         }
     }
 
-    rule<TVInitO>("TVInitO") {
+    rule<TVInit>("TVInitO") {
         premise {
             val statement = stmt as VariableTree
             val expression = TreePath(path, statement.initializer)
@@ -102,7 +109,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                 VarDecl.Left(eJdg.Tf, eJdg.Ts, Tbf, Tbs, Tret, program, f, jt, statement.name.toString())
             )
             ensure(Tret == declJdg.Tret)
-            TVInitO(c, statement.name.toEid(), tt1, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
+            TVInit(c, statement.name.toEid(), tt1, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
         }
         conclusion {
             left {
@@ -111,8 +118,8 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                     ?.let { program.classByPath(TreePath(path, it.type)) } != null
             }
             right {
-                val upd = upd(it.c, it.id, it.tt1, it.delta)
-                Stmt.Right(upd.fields, upd.variables, it.bf, it.bs, it.ret)
+                val upd = upd(it.c, it.id, it.tc, it.delta)
+                Stmt.Right(upd.Tf, upd.Ts, it.bf, it.bs, it.ret)
             }
         }
     }
@@ -143,6 +150,44 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         conclusion {
             left { stmt is ReturnTree && (stmt as ReturnTree).expression != null }
             right { Stmt.Right(Tf.bottom(), Ts.bottom(), Tbf, Tbs, merge(Tret, it)) }
+        }
+    }
+
+    rule<TVInit>("TVInit") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val declaration = stmt as VariableTree
+            ensure(program.classByPath(TreePath(path, declaration.type)) == null)
+            val e = TreePath(path, declaration.initializer)
+            val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, true, program))
+            val jtPath = TreePath(path, declaration.type)
+            val jt = when(val t = declaration.type) {
+                is PrimitiveTypeTree -> when(t.primitiveTypeKind) {
+                    TypeKind.BOOLEAN -> Bool
+                    TypeKind.INT -> Integer
+                    TypeKind.DOUBLE -> Double
+                    else -> fail()
+                }
+                else -> program.enumByTypePath(jtPath)
+                    ?.let(::EnumType)
+                    ?: fail()
+            }
+            ensure(eJdg.tc sub jt)
+            val declJdg = VARIABLE_DECLARATION_JUDGEMENT.derive(
+                VarDecl.Left(
+                    resolve(eJdg.Tf), resolve(eJdg.Ts),
+                    Tbf, Tbs, Tret, program, f, jtPath, declaration.name.toString()
+                )
+            )
+            ensure(Tret == declJdg.Tret)
+            TVInit(c, declaration.name.toEid(), eJdg.tc, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
+        }
+        conclusion {
+            left { (stmt as? VariableTree)?.initializer != null }
+            right {
+                val upd = upd(it.c, it.id, it.tc, it.delta)
+                Stmt.Right(upd.Tf, upd.Ts, it.bf, it.bs, it.ret)
+            }
         }
     }
 }

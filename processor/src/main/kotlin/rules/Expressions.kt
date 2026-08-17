@@ -40,7 +40,7 @@ import language.types.dcastTT
 import language.types.defined
 import language.types.evoTTI
 import language.types.evolve
-import language.types.fields
+import language.types.Tf
 import language.types.lookup
 import language.types.not
 import language.types.resolve
@@ -50,7 +50,7 @@ import language.types.toTC
 import language.types.tt
 import language.types.ucastTT
 import language.types.upd
-import language.types.variables
+import language.types.Ts
 import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.isLabel
@@ -90,7 +90,7 @@ object Expr {
         val Tf: TypeEnv,
         val Ts: TypeEnv
     ) {
-        constructor(tc: TC, delta: Delta) : this(tc, delta.fields, delta.variables)
+        constructor(tc: TC, delta: Delta) : this(tc, delta.Tf, delta.Ts)
     }
 }
 
@@ -365,7 +365,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         }
         conclusion {
             left { expression.kind == Tree.Kind.LOGICAL_COMPLEMENT }
-            right { Expr.Right(Bool, !it.fields, !it.variables) }
+            right { Expr.Right(Bool, !it.Tf, !it.Ts) }
         }
     }
 
@@ -394,7 +394,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
                         !isLabel(TreePath(path, equals.leftOperand)) &&
                         !isLabel(TreePath(path, equals.rightOperand))
             }
-            right { Expr.Right(Bool, resolve(it.fields), resolve(it.variables)) }
+            right { Expr.Right(Bool, resolve(it.Tf), resolve(it.Ts)) }
         }
     }
 
