@@ -93,7 +93,7 @@ fun toTC(rt: RT): TC =
 
 fun toTC(jt: JT): TC =
     when (jt) {
-        is JClass -> tt(jt.clazz, Shared)
+        is JClass -> tt(jt.clazz, Null)
         is TC -> jt
     }
 

@@ -2,16 +2,25 @@ package rules
 
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.util.TreePath
+import language.model.JavaClass
 import language.model.Program
+import language.types.Bool
 import language.types.BoolUnd
 import language.types.BottomTC
+import language.types.Double
 import language.types.DoubleUnd
 import language.types.EnumType
 import language.types.Id
+import language.types.Integer
 import language.types.IntegerUnd
+import language.types.JClass
+import language.types.THIS
 import language.types.get
 import language.types.TypeEnv
+import language.types.TypeStateTree
 import language.types.Und
+import language.types.plus
+import language.types.toTC
 import language.types.tt
 import rules.dsl.judgement
 import javax.lang.model.type.TypeKind
@@ -70,10 +79,27 @@ val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
     }
 
     rule("TVDeclF") {
-        premise {  }
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            ensure(Tf[c + id] == null)
+            val type = when (val t = jt.leaf) {
+                is PrimitiveTypeTree -> when (t.primitiveTypeKind) {
+                    TypeKind.BOOLEAN -> Bool
+                    TypeKind.INT -> Integer
+                    TypeKind.DOUBLE -> Double
+                    else -> fail()
+                }
+                else -> program.classByPath(jt)?.let(::JClass)
+                    ?: program.enumByTypePath(jt)?.let(::EnumType)
+                    ?: fail()
+            }
+            (c + id) to toTC(type)
+        }
         conclusion {
-            left { true }
-            right { TODO() }
+            left { f }
+            right {
+                VarDecl.Right(Tf + it, Ts, Tbf, Tbs, Tret)
+            }
         }
     }
 }
