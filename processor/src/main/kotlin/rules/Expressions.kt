@@ -39,7 +39,6 @@ import language.types.alias
 import language.types.dcastTT
 import language.types.defined
 import language.types.evoTTI
-import language.types.evolve
 import language.types.Tf
 import language.types.lookup
 import language.types.not
@@ -51,6 +50,7 @@ import language.types.tt
 import language.types.ucastTT
 import language.types.upd
 import language.types.Ts
+import language.types.pairify
 import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.isLabel
@@ -418,8 +418,8 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             right {
                 Expr.Right(
                     Bool,
-                    evolve(it.fields, it.l),
-                    evolve(it.variables, it.l)
+                    pairify(it.fields, it.l),
+                    pairify(it.variables, it.l)
                 )
             }
         }
@@ -445,8 +445,8 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             right {
                 Expr.Right(
                     Bool,
-                    evolve(it.fields, it.l),
-                    evolve(it.variables, it.l)
+                    pairify(it.fields, it.l),
+                    pairify(it.variables, it.l)
                 )
             }
         }
