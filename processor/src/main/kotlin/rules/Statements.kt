@@ -1,5 +1,6 @@
 package rules
 
+import com.sun.source.tree.BlockTree
 import com.sun.source.tree.ExpressionStatementTree
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.ReturnTree
@@ -188,6 +189,25 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                 val upd = upd(it.c, it.id, it.tc, it.delta)
                 Stmt.Right(upd.Tf, upd.Ts, it.bf, it.bs, it.ret)
             }
+        }
+    }
+
+    rule("TBlock") {
+        premise {
+            val block = stmt as BlockTree
+            val bst = block.statements.map { TreePath(path, it) }
+            val bstJdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
+                StmtSeq.Left(Tf, Ts, Tbf, Tbs, Tret, rt, program, false, bst)
+            )
+            ensure(term(bstJdg.Ts - Ts.keys))
+            ensure(term(bstJdg.Tbs - Ts.keys))
+            val Ts2 = bstJdg.Ts.filterKeys { Ts.containsKey(it) }
+            val Tbs2 = bstJdg.Tbs.filterKeys { Ts.containsKey(it) }
+            Stmt.Right(bstJdg.Tf, Ts2, bstJdg.Tbf, Tbs2, bstJdg.Tret)
+        }
+        conclusion {
+            left { !f && stmt is BlockTree }
+            right { it }
         }
     }
 }
