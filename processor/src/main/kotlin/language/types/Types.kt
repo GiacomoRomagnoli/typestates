@@ -25,7 +25,11 @@ sealed interface RT
  */
 sealed interface PT : RT
 
-data object Bool : PT, TC, JT { val labels = listOf("true", "false") }
+data object Bool : PT, TC, JT {
+    const val TRUE = "true"
+    const val FALSE = "false"
+    val labels = listOf(TRUE, FALSE)
+}
 data object BoolUnd : TC
 
 data object Integer : PT, TC, JT

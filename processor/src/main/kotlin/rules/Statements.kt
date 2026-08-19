@@ -2,6 +2,7 @@ package rules
 
 import com.sun.source.tree.BlockTree
 import com.sun.source.tree.ExpressionStatementTree
+import com.sun.source.tree.IfTree
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.ReturnTree
 import com.sun.source.tree.VariableTree
@@ -30,6 +31,7 @@ import language.types.toTC
 import language.types.ucastTT
 import language.types.upd
 import language.types.Ts
+import language.types.evolve
 import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
@@ -44,6 +46,7 @@ private data class TVInit(
     val bs: TypeEnv,
     val ret: TypeEnv
 )
+private data class TIf(val t: Stmt.Right, val f: Stmt.Right)
 
 object Stmt {
     data class Left(
@@ -208,6 +211,42 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         conclusion {
             left { !f && stmt is BlockTree }
             right { it }
+        }
+    }
+
+    rule<TIf>("TIf") {
+        premise {
+            val ifStmt = stmt as IfTree
+            val e = TreePath(path, ifStmt.condition)
+            val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, false, program))
+            ensure(eJdg.tc is Bool)
+            val trueJdg = STATEMENT_JUDGMENT.derive(
+                copy(
+                    Tf = evolve(eJdg.Tf, Bool.TRUE),
+                    Ts = evolve(eJdg.Ts, Bool.TRUE),
+                    path = TreePath(path, ifStmt.thenStatement)
+                )
+            )
+            val falseJdg = STATEMENT_JUDGMENT.derive(
+                copy(
+                    Tf = evolve(eJdg.Tf, Bool.FALSE),
+                    Ts = evolve(eJdg.Ts, Bool.FALSE),
+                    path = TreePath(path, ifStmt.elseStatement ?: fail())
+                )
+            )
+            TIf(trueJdg, falseJdg)
+        }
+        conclusion {
+            left { !f && stmt is IfTree }
+            right {
+                Stmt.Right(
+                    merge(it.t.Tf, it.f.Tf),
+                    merge(it.t.Ts, it.f.Ts),
+                    merge(it.t.Tbf, it.f.Tbf),
+                    merge(it.t.Tbs, it.f.Tbs),
+                    merge(it.t.Tret, it.f.Tret),
+                )
+            }
         }
     }
 }
