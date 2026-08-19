@@ -110,7 +110,10 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
     rule("TId") {
         premise { IDENTIFIER_JUDGEMENT.derive(this) }
         conclusion {
-            left { (expression as? ExpressionTree)?.toEid() != null }
+            left {
+                (expression as? ExpressionTree)?.toEid() != null ||
+                        (expression as? MemberSelectTree)?.expression?.toEid() != null
+            }
             right { it }
         }
     }

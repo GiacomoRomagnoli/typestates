@@ -1,12 +1,14 @@
 package rules
 
 import com.sun.source.tree.ExpressionTree
+import com.sun.source.tree.MemberSelectTree
 import language.model.JavaClass
 import language.types.BoolUnd
 import language.types.DoubleUnd
 import language.types.Eid
 import language.types.EnumType
 import language.types.IntegerUnd
+import language.types.JClass
 import language.types.TC
 import language.types.THIS
 import language.types.TypeStateTree
@@ -14,6 +16,7 @@ import language.types.Und
 import language.types.alias
 import language.types.lookup
 import language.types.sub
+import language.types.toTC
 import language.types.upd
 import rules.dsl.Judgement
 import rules.dsl.judgement
@@ -80,6 +83,24 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { a }
             right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
+        }
+    }
+
+    rule("TIdExt") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val e = expression as? MemberSelectTree ?: fail()
+            val eid = e.expression.toEid() ?: fail()
+            val tt = lookup(c, eid, Tf to Ts) as? TypeStateTree ?: fail()
+            val id = e.identifier.toString()
+            val cl = tt.clazz as? JavaClass ?: fail()
+            val field = cl.allF(id)?.fields?.singleOrNull {it.name == id } ?: fail()
+            ensure(field.jt !is JClass)
+            field.jt
+        }
+        conclusion {
+            left { true }
+            right { Expr.Right(toTC(it), Tf, Ts) }
         }
     }
 }
