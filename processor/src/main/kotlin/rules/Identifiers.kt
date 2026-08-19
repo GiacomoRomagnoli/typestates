@@ -20,32 +20,31 @@ import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
 
-private data class TIdO1(val tc: TC, val delta: Delta)
-private data class TIdO2(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
+private data class TId(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
 
 val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
-    rule<TIdO1>("TIdO1") {
+    rule("TIdO1") {
         premise {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
             val tt = (lookup(c, eid, Tf to Ts) as? TypeStateTree) ?: fail()
             ensure(tt.isWellFormed && !(Und sub tt.type))
-            TIdO1(tt, Tf to Ts)
+            tt
         }
         conclusion {
             left { !a }
-            right { Expr.Right(it.tc, it.delta) }
+            right { Expr.Right(it, Tf, Ts) }
         }
     }
 
-    rule<TIdO2>("TIdO2") {
+    rule<TId>("TIdO2") {
         premise {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
             val tt = (lookup(c, eid, Tf to Ts) as? TypeStateTree) ?: fail()
             ensure(tt.isWellFormed && !(Und sub tt.type))
-            TIdO2(c, eid, tt, Tf to Ts)
+            TId(c, eid, tt, Tf to Ts)
         }
         conclusion {
             left { a }
@@ -66,6 +65,22 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { !a }
             right { Expr.Right(it, Tf, Ts) }
+        }
+    }
+
+    rule<TId>("TIdB2") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
+            val tc = lookup(c, eid, Tf to Ts) ?: fail()
+            ensure(tc !is TypeStateTree)
+            ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
+            ensure(!(tc is EnumType && tc.und))
+            TId(c, eid, tc, Tf to Ts)
+        }
+        conclusion {
+            left { a }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), it.delta)) }
         }
     }
 }
