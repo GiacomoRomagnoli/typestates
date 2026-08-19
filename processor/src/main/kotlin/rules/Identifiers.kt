@@ -2,8 +2,12 @@ package rules
 
 import com.sun.source.tree.ExpressionTree
 import language.model.JavaClass
+import language.types.BoolUnd
 import language.types.Delta
+import language.types.DoubleUnd
 import language.types.Eid
+import language.types.EnumType
+import language.types.IntegerUnd
 import language.types.TC
 import language.types.THIS
 import language.types.TypeStateTree
@@ -46,6 +50,22 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         conclusion {
             left { a }
             right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), it.delta)) }
+        }
+    }
+
+    rule("TIdB1") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
+            val tc = lookup(c, eid, Tf to Ts) ?: fail()
+            ensure(tc !is TypeStateTree)
+            ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
+            ensure(!(tc is EnumType && tc.und))
+            tc
+        }
+        conclusion {
+            left { !a }
+            right { Expr.Right(it, Tf, Ts) }
         }
     }
 }
