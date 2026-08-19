@@ -3,7 +3,6 @@ package rules
 import com.sun.source.tree.ExpressionTree
 import language.model.JavaClass
 import language.types.BoolUnd
-import language.types.Delta
 import language.types.DoubleUnd
 import language.types.Eid
 import language.types.EnumType
@@ -20,7 +19,7 @@ import rules.dsl.Judgement
 import rules.dsl.judgement
 import rules.utils.toEid
 
-private data class TId(val c: JavaClass, val eid: Eid, val tc: TC, val delta: Delta)
+private data class TId(val c: JavaClass, val eid: Eid, val tc: TC)
 
 val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
@@ -44,11 +43,11 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
             val tt = (lookup(c, eid, Tf to Ts) as? TypeStateTree) ?: fail()
             ensure(tt.isWellFormed && !(Und sub tt.type))
-            TId(c, eid, tt, Tf to Ts)
+            TId(c, eid, tt)
         }
         conclusion {
             left { a }
-            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), it.delta)) }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
         }
     }
 
@@ -76,11 +75,11 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             ensure(tc !is TypeStateTree)
             ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
             ensure(!(tc is EnumType && tc.und))
-            TId(c, eid, tc, Tf to Ts)
+            TId(c, eid, tc)
         }
         conclusion {
             left { a }
-            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), it.delta)) }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
         }
     }
 }
