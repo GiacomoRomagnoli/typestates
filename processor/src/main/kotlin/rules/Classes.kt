@@ -10,6 +10,7 @@ import language.types.term
 import language.types.toTC
 import rules.dsl.Judgement
 import rules.dsl.judgement
+import rules.utils.chkOvr
 import rules.utils.chkProt
 
 object Clss {
@@ -69,6 +70,19 @@ val CLASS_JUDGMENT: Judgement<Clss.Left, Unit> = judgement {
         }
         conclusion {
             left { !clazz.isLinear && !extends }
+            right { }
+        }
+    }
+
+    rule("TExt") {
+        premise {
+            val superClass = clazz.superclass ?: fail()
+            ensure(superClass.protocol == null || clazz.protocol!! sub superClass.protocol!!)
+            ensure(chkOvr(clazz, superClass))
+            CLASS_JUDGMENT.derive(copy(extends = false))
+        }
+        conclusion {
+            left { extends }
             right { }
         }
     }
