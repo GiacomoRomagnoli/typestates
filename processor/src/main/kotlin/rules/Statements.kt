@@ -6,6 +6,7 @@ import com.sun.source.tree.IfTree
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.ReturnTree
 import com.sun.source.tree.VariableTree
+import com.sun.source.tree.WhileLoopTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
@@ -47,6 +48,7 @@ private data class TVInit(
     val ret: TypeEnv
 )
 private data class TIf(val t: Stmt.Right, val f: Stmt.Right)
+private data class TWhl(val e: Expr.Right, val st: Stmt.Right)
 
 object Stmt {
     data class Left(
@@ -245,6 +247,36 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
                     merge(it.t.Tbf, it.f.Tbf),
                     merge(it.t.Tbs, it.f.Tbs),
                     merge(it.t.Tret, it.f.Tret),
+                )
+            }
+        }
+    }
+
+    rule<TWhl>("TWhl") {
+        premise {
+            val loop = stmt as WhileLoopTree
+            val e = TreePath(path, loop.condition)
+            val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, false, program))
+            ensure(eJdg.tc is Bool)
+            val stJdg = STATEMENT_JUDGMENT.derive(
+                copy(
+                    Tf = evolve(eJdg.Tf, Bool.TRUE),
+                    Ts = evolve(eJdg.Ts, Bool.TRUE),
+                    path = TreePath(path, loop.statement)
+                )
+            )
+            ensure(Ts.keys.all { stJdg.Ts[it]?.sub(Ts[it]!!) ?: false })
+            ensure(stJdg.Tf.keys.all { stJdg.Tf[it]!! sub (Tf[it] ?: return@all false) })
+            TWhl(eJdg, stJdg)
+        }
+        conclusion {
+            left { !f && stmt is WhileLoopTree }
+            right {
+                Stmt.Right(
+                    merge(evolve(it.e.Tf, Bool.FALSE), it.st.Tbf),
+                    merge(evolve(it.e.Ts, Bool.FALSE), it.st.Tbs),
+                    Tbf, Tbs,
+                    merge(Tret, it.st.Tret)
                 )
             }
         }
