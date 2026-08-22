@@ -6,6 +6,8 @@ import language.model.JavaConstructor
 import language.model.Program
 import language.types.Shared
 import language.types.THIS
+import language.types.Tf
+import language.types.Ts
 import language.types.TypeEnv
 import language.types.Void
 import language.types.bottom
@@ -23,7 +25,6 @@ data class Cns(
 
 val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
     judgement {
-
         rule("TCns") {
             premise {
                 var ts: TypeEnv = mapOf(THIS to tt(constructor.owner, Shared))
@@ -61,4 +62,41 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
             }
         }
 
+        rule("TCnsExt1") {
+            premise {
+                var ts: TypeEnv = mapOf(THIS to tt(constructor.owner, Shared))
+                ts = ts + constructor.pt.map { it.name to toTC(it.type) }
+                val bodyPath = constructor.body ?: fail()
+                val body = bodyPath.leaf as? BlockTree ?: fail()
+                val call = TreePath(bodyPath, body.statements.first())
+                val superJdg = SUPER_CALL_JUDGEMENT.derive(SuperCall.Left(ts, program, call))
+                val fields = constructor.owner.fields.map { it.statement ?: fail() }
+                val fieldsJdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
+                    StmtSeq.Left(
+                        superJdg.Tf, ts, emptyMap(),
+                        emptyMap(), emptyMap(),
+                        Void, program, true,
+                        fields
+                    )
+                )
+                val tbf = fieldsJdg.Tf.bottom()
+                val tret = fieldsJdg.Tf.bottom()
+                val tbs = superJdg.Ts.bottom()
+                val stmts = body.statements.map { TreePath(bodyPath, it) }
+                val stmtsJdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
+                    StmtSeq.Left(fieldsJdg.Tf, superJdg.Ts, tbf, tbs, tret, Void, program, false, stmts)
+                )
+                ensure(stmtsJdg.Tbs == stmtsJdg.Tbs.bottom())
+                ensure(term(stmtsJdg.Ts))
+                stmtsJdg.Tf
+            }
+            conclusion {
+                left {
+                    constructor.owner.superclass != null &&
+                        constructor.owner.superclass!!.qualifiedName != "java.lang.Object" &&
+                            (constructor.body?.leaf as? BlockTree)?.statements?.firstOrNull()?.isSuperCall() == true
+                }
+                right { it }
+            }
+        }
     }
