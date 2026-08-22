@@ -1,7 +1,7 @@
 package rules
 
-import com.sun.source.tree.IdentifierTree
 import com.sun.source.tree.MethodInvocationTree
+import com.sun.source.tree.StatementTree
 import com.sun.source.util.TreePath
 import language.model.JavaClass
 import language.model.Program
@@ -13,6 +13,7 @@ import language.types.sub
 import language.types.toTC
 import rules.dsl.Judgement
 import rules.dsl.judgement
+import rules.utils.isSuperCall
 
 object SuperCall {
     data class Left(val Ts: TypeEnv, val program: Program, val path: TreePath) {
@@ -38,7 +39,7 @@ val SUPER_CALL_JUDGEMENT: Judgement<SuperCall.Left, Delta> = judgement {
             CONSTRUCTOR_JUDGMENT.derive(Cns(constructor, program)) to argsJdg.Ts
         }
         conclusion {
-            left { ((call as? MethodInvocationTree)?.methodSelect as? IdentifierTree)?.name?.toString() == "super" }
+            left { call is StatementTree && call.isSuperCall() }
             right { it }
         }
     }
