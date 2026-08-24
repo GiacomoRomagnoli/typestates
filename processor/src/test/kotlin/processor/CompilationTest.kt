@@ -36,4 +36,15 @@ class CompilationTest: FunSpec({
         compilation.diagnostics().forEach { println(it) }
         compilation.status() shouldBe Compilation.Status.FAILURE
     }
+
+    test("constructor and protocol inheritance chain") {
+        val vehicle = JavaFileObjects.forResource("classes/vehicle/Vehicle.java")
+        val car = JavaFileObjects.forResource("classes/vehicle/Car.java")
+        val electricCar = JavaFileObjects.forResource("classes/vehicle/ElectricCar.java")
+        val compilation = Compiler.javac()
+            .withProcessors(TypestateProcessor())
+            .compile(vehicle, car, electricCar)
+        compilation.diagnostics().forEach { println(it) }
+        compilation.status() shouldBe Compilation.Status.SUCCESS
+    }
 })

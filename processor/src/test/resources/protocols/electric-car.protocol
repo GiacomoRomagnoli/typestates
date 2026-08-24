@@ -1,12 +1,14 @@
-typestate CAR {
+typestate ELECTRIC_CAR {
     OFF = {
         start() : ON,
         lock() : OFF,
+        recharge(int) : OFF,
         drop : end
     }
     ON = {
         stop() : OFF,
         setSpeed(int) : ON,
-        lock() : ON
+        lock() : ON,
+        recharge(int) : ON
     }
 }
