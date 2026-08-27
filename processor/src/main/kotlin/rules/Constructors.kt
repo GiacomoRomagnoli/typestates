@@ -108,6 +108,9 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 val ts1 = ts + constructor.pt.map { it.name to toTC(it.type) }
                 val superClass = constructor.owner.superclass ?: fail()
                 val superConstructor = superClass.constructors.firstOrNull { it.pt.isEmpty() } ?: fail()
+                val bodyPath = constructor.body ?: fail()
+                val body = bodyPath.leaf as? BlockTree ?: fail()
+                val stmts = body.statements.map { TreePath(bodyPath, it) }
                 val superTf = CONSTRUCTOR_JUDGMENT.derive(Cns(superConstructor, program))
                 val fields = constructor.owner.fields.map { it.statement ?: fail() }
                 val fieldsJdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
@@ -120,9 +123,6 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 val tbf = fieldsJdg.Tf.bottom()
                 val tret = fieldsJdg.Tf.bottom()
                 val tbs = ts1.bottom()
-                val bodyPath = constructor.body ?: fail()
-                val body = bodyPath.leaf as? BlockTree ?: fail()
-                val stmts = body.statements.map { TreePath(bodyPath, it) }
                 val stmtsJdg = STATEMENT_SEQUENCE_JUDGMENT.derive(
                     StmtSeq.Left(
                         fieldsJdg.Tf, ts1,
