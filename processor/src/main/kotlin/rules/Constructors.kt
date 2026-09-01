@@ -15,13 +15,19 @@ import language.types.term
 import language.types.toTC
 import language.types.tt
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import rules.utils.isSuperCall
 
 data class Cns(
     val constructor: JavaConstructor,
     val program: Program,
-)
+): Traceable {
+    override fun trace(): String {
+        val params = constructor.element.parameters.joinToString(", ") { it.asType().toString() }
+        return "${constructor.owner.element.simpleName}($params)"
+    }
+}
 
 val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
     judgement {

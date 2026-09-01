@@ -22,6 +22,7 @@ import language.types.Und
 import language.types.plus
 import language.types.toTC
 import language.types.tt
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import javax.lang.model.type.TypeKind
 
@@ -36,7 +37,9 @@ object VarDecl {
         val f: Boolean,
         val jt: TreePath,
         val id: String,
-    )
+    ): Traceable {
+        override fun trace(): String = "${jt.leaf} $id"
+    }
 
     data class Right(
         val Tf: TypeEnv,

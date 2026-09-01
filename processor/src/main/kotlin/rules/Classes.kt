@@ -9,6 +9,7 @@ import language.types.isLinear
 import language.types.term
 import language.types.toTC
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import rules.utils.chkOvr
 import rules.utils.chkProt
@@ -18,7 +19,9 @@ object Clss {
         val clazz: JavaClass,
         val program: Program,
         val extends: Boolean = clazz.superclass?.qualifiedName != "java.lang.Object",
-    )
+    ) : Traceable {
+        override fun trace() = clazz.qualifiedName
+    }
 }
 
 val CLASS_JUDGMENT: Judgement<Clss.Left, Unit> = judgement {

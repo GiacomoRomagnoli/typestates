@@ -14,6 +14,7 @@ import language.types.term
 import language.types.toTC
 import language.types.tt
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 
 object Meth {
@@ -22,7 +23,13 @@ object Meth {
         val method: JavaMethod,
         val program: Program,
         val c: JavaClass
-    )
+    ): Traceable {
+        override fun trace(): String {
+            val params = method.element.parameters.joinToString(", ") { it.asType().toString() }
+            val ret = method.element.returnType.toString()
+            return "$ret ${method.element.simpleName}($params)"
+        }
+    }
 }
 
 val METHOD_JUDGEMENT: Judgement<Meth.Left, TypeEnv> = judgement {

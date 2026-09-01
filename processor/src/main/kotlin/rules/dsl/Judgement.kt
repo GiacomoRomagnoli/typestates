@@ -1,25 +1,49 @@
 package rules.dsl
 
-class Judgement<I, O>(val rules: Set<Rule<I, O>>) {
+class Judgement<I : Traceable, O>(val rules: Set<Rule<I, O>>) {
     operator fun get(name: String) = rules.firstOrNull { it.name == name }
-    operator fun invoke(input: I): JudgementResult<O> = rules
-        .mapNotNull { rule ->
-            when(val result = rule(input)) {
-                is RuleResult.Failure -> null
-                is RuleResult.Success -> rule.name to result.value
+    operator fun invoke(input: I): JudgementResult<I, O> {
+        val applicable = rules
+            .map { rule -> rule.name to rule(input) }
+            .filter { (_, result) -> result !is RuleResult.NotApplicable }
+
+        return when (applicable.size) {
+            0 -> JudgementResult.NoApplicableRule(input)
+
+            1 -> when (val result = applicable[0].second) {
+                is RuleResult.Success ->
+                    JudgementResult.Derived(applicable[0].first, result.value)
+
+                is RuleResult.Failure ->
+                    JudgementResult.NotDerived(applicable[0].first, input, result.cause)
+
+                is RuleResult.NotApplicable ->
+                    error("unreachable")
             }
+
+            else -> JudgementResult.MultipleApplicableRules(applicable.map { it.first }.toSet(), input)
         }
-        .let {
-            when(it.size) {
-                0 -> JudgementResult.NotDerivable
-                1 -> JudgementResult.Derived(it[0].first, it[0].second)
-                else -> JudgementResult.Ambiguous(it.map { (name, _) -> name }.toSet())
-            }
-        }
+    }
 }
 
-sealed interface JudgementResult<out O> {
-    data class Derived<O>(val rule: String, val value: O) : JudgementResult<O>
-    data class Ambiguous(val rules: Set<String>) : JudgementResult<Nothing>
-    data object NotDerivable : JudgementResult<Nothing>
+sealed interface JudgementResult<out I: Traceable, out O> {
+    data class Derived<O>(
+        val rule: String,
+        val value: O
+    ) : JudgementResult<Nothing, O>
+
+    data class NotDerived<I : Traceable>(
+        val rule: String,
+        val input: I,
+        val cause: JudgementResult<*, *>? = null
+    ) : JudgementResult<I, Nothing>
+
+    data class NoApplicableRule<I : Traceable>(
+        val input: I
+    ) : JudgementResult<I, Nothing>
+
+    data class MultipleApplicableRules<I : Traceable>(
+        val rules: Set<String>,
+        val input: I
+    ) : JudgementResult<I, Nothing>
 }

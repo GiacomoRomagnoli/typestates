@@ -10,5 +10,6 @@ class Rule<in I, out O>(
 
 sealed interface RuleResult<out O> {
     data class Success<O>(val value: O) : RuleResult<O>
-    data object Failure : RuleResult<Nothing>
+    data class Failure(val cause: JudgementResult<*, *>? = null) : RuleResult<Nothing>
+    data object NotApplicable : RuleResult<Nothing>
 }

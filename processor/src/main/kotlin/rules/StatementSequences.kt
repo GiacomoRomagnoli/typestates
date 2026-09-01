@@ -5,6 +5,7 @@ import language.model.Program
 import language.types.RT
 import language.types.TypeEnv
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 
 object StmtSeq {
@@ -18,7 +19,10 @@ object StmtSeq {
         val program: Program,
         val f: Boolean,
         val stmts: List<TreePath>,
-    )
+    ) : Traceable {
+        override fun trace(): String =
+            if (stmts.isEmpty()) "<empty>" else "${stmts.size} statements, next: ${stmts.first().leaf}"
+    }
 }
 
 val STATEMENT_SEQUENCE_JUDGMENT: Judgement<StmtSeq.Left, Stmt.Right> = judgement {

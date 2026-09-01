@@ -14,6 +14,7 @@ import protocol.model.State
 import protocol.model.TypeState
 import rules.dsl.Judgement
 import rules.dsl.RuleScope
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import kotlin.collections.plus
 
@@ -27,7 +28,13 @@ object TypeStateDef {
         val state: State,
         val program: Program,
         val unfolded: Boolean = false,
-    )
+    ): Traceable {
+        override fun trace(): String =
+            when (state) {
+                is TypeState -> state.name
+                is OutPutState -> "<${state.labels.joinToString(", "){it + " : " + state[it] }}>"
+            }
+    }
 }
 
 private fun RuleScope<TypeStateDef.Left, List<TypeEnv>, TypeEnv>.deriveTransitions(left: TypeStateDef.Left): List<TypeEnv> {

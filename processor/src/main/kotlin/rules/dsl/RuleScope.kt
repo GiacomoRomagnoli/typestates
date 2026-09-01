@@ -1,7 +1,7 @@
 package rules.dsl
 
 typealias Premise<I, P> = I.() -> P
-class PremiseFailure : RuntimeException(null, null, false, false)
+class PremiseFailure(val chain: JudgementResult<*, *>? = null) : RuntimeException(null, null, false, false)
 
 class RuleScope<I, P, O> {
     private var premise: Premise<I, P>? = null
@@ -11,10 +11,10 @@ class RuleScope<I, P, O> {
 
     fun ensure(condition: Boolean) { if (!condition) fail() }
 
-    fun <A, B> Judgement<A, B>.derive(input: A): B =
+    fun <A : Traceable, B> Judgement<A, B>.derive(input: A): B =
         when (val result = this(input)) {
             is JudgementResult.Derived -> result.value
-            else -> fail()
+            else -> throw PremiseFailure(result)
         }
 
     fun premise(block: Premise<I, P>) {
@@ -32,12 +32,12 @@ class RuleScope<I, P, O> {
         val conclusion = checkNotNull(conclusion)
         return Rule(name) { input ->
             if (!conclusion.left(input)) {
-                RuleResult.Failure
-            } else try {
-                val p = premise(input)
+                RuleResult.NotApplicable
+            }
+            else {
+                val p = try { premise(input) }
+                catch (failure: PremiseFailure) { return@Rule RuleResult.Failure(failure.chain) }
                 RuleResult.Success(conclusion.right(input, p))
-            } catch (_: PremiseFailure) {
-                RuleResult.Failure
             }
         }
     }

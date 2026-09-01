@@ -2,7 +2,7 @@ package rules.dsl
 
 import kotlin.experimental.ExperimentalTypeInference
 
-class JudgementScope<I, O> {
+class JudgementScope<I : Traceable, O> {
     private val rules = mutableListOf<Rule<I, O>>()
 
     @OptIn(ExperimentalTypeInference::class)
@@ -13,5 +13,5 @@ class JudgementScope<I, O> {
     internal fun build(): Judgement<I, O> = Judgement(rules.toSet())
 }
 
-fun <I, O> judgement(block: JudgementScope<I, O>.() -> Unit): Judgement<I, O> =
+fun <I : Traceable, O> judgement(block: JudgementScope<I, O>.() -> Unit): Judgement<I, O> =
     JudgementScope<I, O>().apply(block).build()

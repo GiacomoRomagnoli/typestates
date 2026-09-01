@@ -52,6 +52,7 @@ import language.types.upd
 import language.types.Ts
 import language.types.pairify
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import rules.utils.isLabel
 import rules.utils.toEid
@@ -82,8 +83,9 @@ object Expr {
         val path: TreePath,
         val a: Boolean,
         val program: Program
-    ) {
+    ): Traceable {
         val expression get() = path.leaf
+        override fun trace() = expression.toString()
     }
     data class Right(
         val tc: TC,

@@ -13,12 +13,14 @@ import language.types.TypeStateTree
 import language.types.sub
 import language.types.toTC
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import rules.utils.isSuperCall
 
 object SuperCall {
-    data class Left(val Ts: TypeEnv, val program: Program, val path: TreePath) {
+    data class Left(val Ts: TypeEnv, val program: Program, val path: TreePath): Traceable {
         val call = path.leaf
+        override fun trace(): String = call.toString()
     }
 }
 

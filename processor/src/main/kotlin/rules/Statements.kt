@@ -34,6 +34,7 @@ import language.types.upd
 import language.types.Ts
 import language.types.evolve
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 import rules.utils.toEid
 import javax.lang.model.type.TypeKind
@@ -61,8 +62,9 @@ object Stmt {
         val rt: RT,
         val f: Boolean = false,
         val path: TreePath,
-    ) {
+    ): Traceable {
         val stmt get() = path.leaf
+        override fun trace(): String = stmt.toString()
     }
 
     data class Right(

@@ -6,6 +6,7 @@ import language.types.TC
 import language.types.TypeEnv
 import language.types.resolve
 import rules.dsl.Judgement
+import rules.dsl.Traceable
 import rules.dsl.judgement
 
 object ExprSeq {
@@ -16,7 +17,10 @@ object ExprSeq {
         val program: Program,
         val exprs: List<TreePath>,
         val tcs: List<TC> = emptyList()
-    )
+    ): Traceable {
+        override fun trace(): String =
+            if (exprs.isEmpty()) "<empty>" else "${exprs.size} expression(s), next: ${exprs.first().leaf}"
+    }
     data class Right(
         val tcs: List<TC>,
         val Tf: TypeEnv,

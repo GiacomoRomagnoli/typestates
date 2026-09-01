@@ -12,13 +12,15 @@ import language.types.Integer
 import language.types.Null
 import language.types.TC
 import language.types.tt
+import rules.dsl.Traceable
 import rules.dsl.judgement
 
 data class Value(
     val path: TreePath,
     val program: Program
-) {
+): Traceable {
     val value get() = path.leaf
+    override fun trace() = value.toString()
 }
 
 val VALUE_JUDGMENT = judgement<Value, TC> {
