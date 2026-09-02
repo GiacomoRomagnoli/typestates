@@ -41,14 +41,14 @@ fun pairify(typeEnv: TypeEnv, l: String): TypeEnv =
 data class Eid(val id: String, val receiver: Receiver)
 enum class Receiver { THIS, SUPER, NONE }
 
-fun lookup(c: JavaClass, eid: Eid, delta: Delta): TC? {
+fun lookup(c: JavaClass, eid: Eid, delta: Delta): TC {
     val cAllF = c.allF(eid.id)
     val supcAllF = c.superclass?.allF(eid.id)
     return when {
-        eid.receiver == Receiver.THIS && cAllF != null -> delta.Tf[cAllF + eid.id]
-        eid.receiver == Receiver.SUPER && supcAllF != null -> delta.Tf[supcAllF + eid.id]
-        eid.receiver == Receiver.NONE && cAllF != null && delta.Ts[eid.id] == null -> delta.Tf[cAllF + eid.id]
-        eid.receiver == Receiver.NONE && delta.Ts[eid.id] != null -> delta.Ts[eid.id]
+        eid.receiver == Receiver.THIS && cAllF != null -> delta.Tf[cAllF + eid.id]!!
+        eid.receiver == Receiver.SUPER && supcAllF != null -> delta.Tf[supcAllF + eid.id]!!
+        eid.receiver == Receiver.NONE && cAllF != null && delta.Ts[eid.id] == null -> delta.Tf[cAllF + eid.id]!!
+        eid.receiver == Receiver.NONE && delta.Ts[eid.id] != null -> delta.Ts[eid.id]!!
         else -> BottomTC
     }
 }

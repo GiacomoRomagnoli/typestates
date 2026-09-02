@@ -124,7 +124,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         premise {
             val newExpr = expression as NewClassTree
             val c = program.classByPath(TreePath(path, newExpr.identifier)) ?: fail()
-            ensure(a || c.protocol?.let { term(U(it.initState)) } ?: true)
+            ensure(a || c.protocol?.let { term(U(it.initState)) } != false)
             val args = newExpr.arguments.map { TreePath(path, it) }
             val exprSeqL = ExprSeq.Left(Tf, Ts, true, program, args)
             val exprSeqR = EXPRESSION_SEQUENCE_JUDGMENT.derive(exprSeqL)
@@ -147,7 +147,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val exprR = EXPRESSION_JUDGMENT.derive(exprL)
             ensure(exprR.tc !is TypeStateTree)
             val eid = assignment.variable.toEid() ?: fail()
-            val lkp = lookup(c, eid, exprR.Tf to exprR.Ts) ?: fail()
+            val lkp = lookup(c, eid, exprR.Tf to exprR.Ts)
             ensure(lkp in listOf(Bool, BoolUnd, Integer, IntegerUnd, Double, DoubleUnd) || lkp is EnumType)
             ensure(exprR.tc sub lkp.defined())
             TUpdB(c, eid, exprR.tc, exprR.Tf to exprR.Ts)
