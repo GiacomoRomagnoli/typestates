@@ -14,7 +14,7 @@ class TypestateProcessor: Processor() {
             val result = CLASS_JUDGMENT(Clss.Left(program.classByElement(c), program))
             if (result is JudgementResult.Derived)
                 continue
-            emit(result.formatTrace(), c)
+            emit(result.formatTrace())
         }
         return true
     }
