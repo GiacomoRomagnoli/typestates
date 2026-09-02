@@ -110,7 +110,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
             val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, expression, true, program))
             val tt = eJdg.tc as? TypeStateTree ?: fail()
             val jt = TreePath(path, statement.type)
-            val c1 = program.classByPath(jt) ?: fail()
+            val c1 = program.classByPath(jt)!!
             ensure(tt.clazz isSubClassOf c1)
             val tt1 = ucastTT(tt, c1)
             val declJdg = VARIABLE_DECLARATION_JUDGEMENT.derive(
