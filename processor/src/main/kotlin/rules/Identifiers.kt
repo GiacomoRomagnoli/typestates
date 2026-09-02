@@ -43,13 +43,18 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
     rule<TId>("TIdO2") {
         premise {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
-            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
-            val tt = (lookup(c, eid, Tf to Ts) as? TypeStateTree) ?: fail()
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tt = (lookup(c, eid, Tf to Ts) as TypeStateTree)
             ensure(tt.isWellFormed && !(Und sub tt.type))
             TId(c, eid, tt)
         }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            lookup(c, eid, Tf to Ts) is TypeStateTree
+        }
         conclusion {
-            left { a }
+            left { a && (expression as? ExpressionTree)?.toEid() != null }
             right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
         }
     }
@@ -73,15 +78,20 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
     rule<TId>("TIdB2") {
         premise {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
-            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
-            val tc = lookup(c, eid, Tf to Ts) ?: fail()
-            ensure(tc !is TypeStateTree)
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)!!
             ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
             ensure(!(tc is EnumType && tc.und))
             TId(c, eid, tc)
         }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)
+            tc != null && tc !is TypeStateTree
+        }
         conclusion {
-            left { a }
+            left { a && (expression as? ExpressionTree)?.toEid() != null }
             right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
         }
     }
@@ -99,7 +109,7 @@ val IDENTIFIER_JUDGEMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             field.jt
         }
         conclusion {
-            left { true }
+            left { (expression as? MemberSelectTree)?.expression?.toEid() != null }
             right { Expr.Right(toTC(it), Tf, Ts) }
         }
     }

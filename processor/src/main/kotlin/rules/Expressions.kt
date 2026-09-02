@@ -288,15 +288,20 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             ensure(!(Top sub tt1.type))
             val tc = toTC(method.rt)
             ensure(a || term(tc))
-            val eid = select.expression.toEid() ?: fail()
+            val eid = select.expression.toEid()!!
             TCall(c, eid, tc, tt1, argsR.Tf to argsR.Ts)
         }
+        side {
+            val invocation = expression as MethodInvocationTree
+            val select = invocation.methodSelect as MemberSelectTree
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = select.expression.toEid()!!
+            val tt = lookup(c, eid, Tf to Ts) as TypeStateTree
+            val method = program.methodByPath(path) ?: return@side false
+            !anytime(tt.clazz, method.pSig)
+        }
         conclusion {
-            left {
-                ((expression as? MethodInvocationTree)?.methodSelect as? MemberSelectTree)
-                    ?.expression
-                    ?.toEid() != null
-            }
+            left { ((expression as? MethodInvocationTree)?.methodSelect as? MemberSelectTree)?.expression?.toEid() != null }
             right { Expr.Right(it.tc, upd(it.c, it.eid, it.tt, it.delta)) }
         }
     }
@@ -320,8 +325,17 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val tc = toTC(method.rt)
             ensure(a || term(tc))
             ensure(!(Null sub tt.type))
-            val eid = select.expression.toEid() ?: fail()
+            val eid = select.expression.toEid()!!
             TAnyt(c, eid, tc, tt, argsR.Tf to argsR.Ts)
+        }
+        side {
+            val invocation = expression as MethodInvocationTree
+            val select = invocation.methodSelect as MemberSelectTree
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = select.expression.toEid()!!
+            val tt = lookup(c, eid, Tf to Ts) as TypeStateTree
+            val method = program.methodByPath(path) ?: return@side false
+            anytime(tt.clazz, method.pSig)
         }
         conclusion {
             left {
