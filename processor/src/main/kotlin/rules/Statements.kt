@@ -119,12 +119,9 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
             ensure(Tret == declJdg.Tret)
             TVInit(c, statement.name.toEid(), tt1, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
         }
+        side { program.classByPath(TreePath(path, (stmt as VariableTree).type)) != null }
         conclusion {
-            left {
-                (stmt as? VariableTree)
-                    ?.takeIf { it.initializer != null }
-                    ?.let { program.classByPath(TreePath(path, it.type)) } != null
-            }
+            left { (stmt as? VariableTree)?.initializer != null }
             right {
                 val upd = upd(it.c, it.id, it.tc, it.delta)
                 Stmt.Right(upd.Tf, upd.Ts, it.bf, it.bs, it.ret)
@@ -161,11 +158,10 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
         }
     }
 
-    rule<TVInit>("TVInit") {
+    rule<TVInit>("TVInitB") {
         premise {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val declaration = stmt as VariableTree
-            ensure(program.classByPath(TreePath(path, declaration.type)) == null)
             val e = TreePath(path, declaration.initializer)
             val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, true, program))
             val jtPath = TreePath(path, declaration.type)
@@ -190,6 +186,7 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
             ensure(Tret == declJdg.Tret)
             TVInit(c, declaration.name.toEid(), eJdg.tc, declJdg.Tf to declJdg.Ts, declJdg.Tbf, declJdg.Tbs, declJdg.Tret,)
         }
+        side { program.classByPath(TreePath(path, (stmt as VariableTree).type)) == null }
         conclusion {
             left { (stmt as? VariableTree)?.initializer != null }
             right {
