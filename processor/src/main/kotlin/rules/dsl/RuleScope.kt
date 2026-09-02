@@ -1,9 +1,11 @@
 package rules.dsl
 
 typealias Premise<I, P> = I.() -> P
+typealias Side<I> = I.() -> Boolean
 class PremiseFailure(val chain: JudgementResult<*, *>? = null) : RuntimeException(null, null, false, false)
 
 class RuleScope<I, P, O> {
+    private var side: Side<I>? = null
     private var premise: Premise<I, P>? = null
     private var conclusion: Conclusion<I, P, O>? = null
 
@@ -27,11 +29,17 @@ class RuleScope<I, P, O> {
         conclusion = ConclusionScope<I, P, O>().apply(block).build()
     }
 
+    fun side(block: Side<I>) {
+        check(side == null)
+        side = block
+    }
+
     internal fun build(name: String): Rule<I, O> {
+        val sideCondition = side ?: { true }
         val premise = checkNotNull(premise)
         val conclusion = checkNotNull(conclusion)
         return Rule(name) { input ->
-            if (!conclusion.left(input)) {
+            if (!conclusion.left(input) || !sideCondition(input)) {
                 RuleResult.NotApplicable
             }
             else {
