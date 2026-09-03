@@ -20,6 +20,7 @@ import language.model.anytime
 import language.model.isSubClassOf
 import language.types.Bool
 import language.types.BoolUnd
+import language.types.BottomTC
 import language.types.Delta
 import language.types.Double
 import language.types.DoubleUnd
@@ -27,6 +28,7 @@ import language.types.Eid
 import language.types.EnumType
 import language.types.Integer
 import language.types.IntegerUnd
+import language.types.JClass
 import language.types.Null
 import language.types.Shared
 import language.types.TC
@@ -50,6 +52,7 @@ import language.types.tt
 import language.types.ucastTT
 import language.types.upd
 import language.types.Ts
+import language.types.Und
 import language.types.pairify
 import rules.dsl.Judgement
 import rules.dsl.Traceable
@@ -72,6 +75,7 @@ data class TCall(val c: JavaClass, val eid: Eid, val tc: TC, val tt: TypeStateTr
 typealias TAnyt = TCall
 typealias TAnytM = TUpdExt
 data class TEqL(val l: String, val fields: TypeEnv, val variables: TypeEnv)
+data class TId(val c: JavaClass, val eid: Eid, val tc: TC)
 
 /**
  * data classes for input and output of the judgment
@@ -109,14 +113,101 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
         }
     }
 
-    rule("TId") {
-        premise { IDENTIFIER_JUDGEMENT.derive(this) }
+    rule("TIdO1") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
+            val tt = (lookup(c, eid, Tf to Ts) as? TypeStateTree) ?: fail()
+            ensure(tt.isWellFormed && !(Und sub tt.type))
+            tt
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            lookup(c, eid, Tf to Ts) is TypeStateTree
+        }
         conclusion {
-            left {
-                (expression as? ExpressionTree)?.toEid() != null ||
-                        (expression as? MemberSelectTree)?.expression?.toEid() != null
-            }
-            right { it }
+            left { !a && (expression as? ExpressionTree)?.toEid() != null }
+            right { Expr.Right(it, Tf, Ts) }
+        }
+    }
+
+    rule<TId>("TIdO2") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tt = (lookup(c, eid, Tf to Ts) as TypeStateTree)
+            ensure(tt.isWellFormed && !(Und sub tt.type))
+            TId(c, eid, tt)
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            lookup(c, eid, Tf to Ts) is TypeStateTree
+        }
+        conclusion {
+            left { a && (expression as? ExpressionTree)?.toEid() != null }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
+        }
+    }
+
+    rule("TIdB1") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as? ExpressionTree)?.toEid() ?: fail()
+            val tc = lookup(c, eid, Tf to Ts)
+            ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
+            ensure(!(tc is EnumType && tc.und))
+            tc
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)
+            tc !is BottomTC && tc !is TypeStateTree
+        }
+        conclusion {
+            left { !a && (expression as? ExpressionTree)?.toEid() != null }
+            right { Expr.Right(it, Tf, Ts) }
+        }
+    }
+
+    rule<TId>("TIdB2") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)
+            ensure(tc !in listOf(IntegerUnd, DoubleUnd, BoolUnd))
+            ensure(!(tc is EnumType && tc.und))
+            TId(c, eid, tc)
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val eid = (expression as ExpressionTree).toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)
+            tc !is BottomTC && tc !is TypeStateTree
+        }
+        conclusion {
+            left { a && (expression as? ExpressionTree)?.toEid() != null }
+            right { Expr.Right(it.tc, upd(it.c, it.eid, alias(it.tc), Tf to Ts)) }
+        }
+    }
+
+    rule("TIdExt") {
+        premise {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val e = expression as? MemberSelectTree ?: fail()
+            val eid = e.expression.toEid() ?: fail()
+            val tt = lookup(c, eid, Tf to Ts) as? TypeStateTree ?: fail()
+            val id = e.identifier.toString()
+            val cl = tt.clazz as? JavaClass ?: fail()
+            val field = cl.allF(id)?.fields?.singleOrNull {it.name == id } ?: fail()
+            ensure(field.jt !is JClass)
+            field.jt
+        }
+        conclusion {
+            left { (expression as? MemberSelectTree)?.expression?.toEid() != null }
+            right { Expr.Right(toTC(it), Tf, Ts) }
         }
     }
 
@@ -148,9 +239,15 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             ensure(exprR.tc !is TypeStateTree)
             val eid = assignment.variable.toEid() ?: fail()
             val lkp = lookup(c, eid, exprR.Tf to exprR.Ts)
-            ensure(lkp in listOf(Bool, BoolUnd, Integer, IntegerUnd, Double, DoubleUnd) || lkp is EnumType)
             ensure(exprR.tc sub lkp.defined())
             TUpdB(c, eid, exprR.tc, exprR.Tf to exprR.Ts)
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val assignment = expression as AssignmentTree
+            val eid = assignment.variable.toEid()!!
+            val tc = lookup(c, eid, Tf to Ts)
+            tc in listOf(Bool, BoolUnd, Integer, IntegerUnd, Double, DoubleUnd) || tc is EnumType
         }
         conclusion {
             left { (expression as? AssignmentTree)?.variable?.toEid() != null }
@@ -168,12 +265,18 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val tt1 = exprR.tc as? TypeStateTree ?: fail()
             val eid = assignment.variable.toEid() ?: fail()
             val delta = exprR.Tf to exprR.Ts
-            val tt = lookup(c, eid, delta) as? TypeStateTree ?: fail()
+            val tt = lookup(c, eid, delta) as TypeStateTree
             ensure(term(tt))
             ensure(tt1.clazz isSubClassOf tt.clazz)
             val cl = tt.clazz as? JavaClass ?: fail()
             val tt2 = ucastTT(tt1, cl)
             TUpdO(c, eid, tt1, tt2, delta)
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val assignment = expression as AssignmentTree
+            val eid = assignment.variable.toEid()!!
+            lookup(c, eid, Tf to Ts) is TypeStateTree
         }
         conclusion {
             left { (expression as? AssignmentTree)?.variable?.toEid() != null }
