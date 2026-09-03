@@ -3,6 +3,7 @@ package rules
 import com.sun.source.tree.BlockTree
 import com.sun.source.tree.ExpressionStatementTree
 import com.sun.source.tree.IfTree
+import com.sun.source.tree.ParenthesizedTree
 import com.sun.source.tree.PrimitiveTypeTree
 import com.sun.source.tree.ReturnTree
 import com.sun.source.tree.VariableTree
@@ -218,7 +219,9 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
     rule<TIf>("TIf") {
         premise {
             val ifStmt = stmt as IfTree
-            val e = TreePath(path, ifStmt.condition)
+            val conditionPath = TreePath(path, ifStmt.condition)
+            val condition = ifStmt.condition as ParenthesizedTree
+            val e = TreePath(conditionPath, condition.expression)
             val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, false, program))
             ensure(eJdg.tc is Bool)
             val trueJdg = STATEMENT_JUDGMENT.derive(
@@ -254,7 +257,9 @@ val STATEMENT_JUDGMENT: Judgement<Stmt.Left, Stmt.Right> = judgement {
     rule<TWhl>("TWhl") {
         premise {
             val loop = stmt as WhileLoopTree
-            val e = TreePath(path, loop.condition)
+            val conditionPath = TreePath(path, loop.condition)
+            val condition = loop.condition as ParenthesizedTree
+            val e = TreePath(conditionPath, condition.expression)
             val eJdg = EXPRESSION_JUDGMENT.derive(Expr.Left(Tf, Ts, e, false, program))
             ensure(eJdg.tc is Bool)
             val stJdg = STATEMENT_JUDGMENT.derive(

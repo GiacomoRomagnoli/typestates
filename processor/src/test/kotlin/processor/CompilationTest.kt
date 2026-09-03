@@ -47,4 +47,16 @@ class CompilationTest: FunSpec({
         compilation.diagnostics().forEach { println(it) }
         compilation.status() shouldBe Compilation.Status.SUCCESS
     }
+
+    test("cars") {
+        val mode = JavaFileObjects.forResource("cars/Mode.java")
+        val car = JavaFileObjects.forResource("cars/Car.java")
+        val suv = JavaFileObjects.forResource("cars/Suv.java")
+        val client = JavaFileObjects.forResource("cars/ClientCode.java")
+        val compilation = Compiler.javac()
+            .withProcessors(TypestateProcessor())
+            .compile(mode, car, suv, client)
+        compilation.diagnostics().forEach { println(it) }
+        compilation.status() shouldBe Compilation.Status.SUCCESS
+    }
 })

@@ -107,6 +107,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
 
     rule("TVal") {
         premise { VALUE_JUDGMENT.derive(Value(path, program)) }
+        side { if(expression is MemberSelectTree) program.enumByValuePath(path) != null else true }
         conclusion {
             left { expression is LiteralTree || expression is MemberSelectTree }
             right { Expr.Right(it, Tf, Ts) }
@@ -198,12 +199,18 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val e = expression as? MemberSelectTree ?: fail()
             val eid = e.expression.toEid() ?: fail()
-            val tt = lookup(c, eid, Tf to Ts) as? TypeStateTree ?: fail()
+            val tt = lookup(c, eid, Tf to Ts) as TypeStateTree
             val id = e.identifier.toString()
             val cl = tt.clazz as? JavaClass ?: fail()
             val field = cl.allF(id)?.fields?.singleOrNull {it.name == id } ?: fail()
             ensure(field.jt !is JClass)
             field.jt
+        }
+        side {
+            val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
+            val e = expression as MemberSelectTree
+            val eid = e.expression.toEid()!!
+            lookup(c, eid, Tf to Ts) is TypeStateTree
         }
         conclusion {
             left { (expression as? MemberSelectTree)?.expression?.toEid() != null }
@@ -399,7 +406,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val select = invocation.methodSelect as MemberSelectTree
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val eid = select.expression.toEid()!!
-            val tt = lookup(c, eid, Tf to Ts) as TypeStateTree
+            val tt = lookup(c, eid, Tf to Ts) as? TypeStateTree ?: return@side false
             val method = program.methodByPath(path) ?: return@side false
             !anytime(tt.clazz, method.pSig)
         }
@@ -436,7 +443,7 @@ val EXPRESSION_JUDGMENT: Judgement<Expr.Left, Expr.Right> = judgement {
             val select = invocation.methodSelect as MemberSelectTree
             val c = (Ts[THIS] as TypeStateTree).clazz as JavaClass
             val eid = select.expression.toEid()!!
-            val tt = lookup(c, eid, Tf to Ts) as TypeStateTree
+            val tt = lookup(c, eid, Tf to Ts) as? TypeStateTree ?: return@side false
             val method = program.methodByPath(path) ?: return@side false
             anytime(tt.clazz, method.pSig)
         }

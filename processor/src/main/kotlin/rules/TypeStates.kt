@@ -32,7 +32,7 @@ object TypeStateDef {
         override fun trace(): String =
             when (state) {
                 is TypeState -> state.name
-                is OutPutState -> "<${state.labels.joinToString(", "){it + " : " + state[it] }}>"
+                is OutPutState -> "<${state.labels.joinToString(", "){it + " : " + state[it]?.name }}>"
             }
     }
 }
@@ -123,7 +123,7 @@ val TYPESTATE_DEFINITION_JUDGMENT: Judgement<TypeStateDef.Left, TypeEnv> =
                 }
             }
             conclusion {
-                left { unfolded && state is OutPutState }
+                left { state is OutPutState }
                 right { it.merge() }
             }
         }
