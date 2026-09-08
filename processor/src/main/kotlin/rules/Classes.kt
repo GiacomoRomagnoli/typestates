@@ -62,14 +62,13 @@ val CLASS_JUDGMENT: Judgement<Clss.Left, Unit> = judgement {
     rule("TClassNL") {
         premise {
             ensure(clazz.allFields.none { it.jt.isLinear })
-            clazz.constructors.forEach { CONSTRUCTOR_JUDGMENT.derive(Cns(it, program)) }
-            val tf: TypeEnv = buildMap {
-                clazz.allFields.forEach { put(FieldId(it.owner, it.name), toTC(it.jt)) }
-            }
-            clazz.meths.forEach {
-                val tf1 = METHOD_JUDGEMENT.derive(Meth.Left(tf, it, program, clazz))
-                ensure(tf == tf1)
-            }
+            clazz.constructors
+                .map { CONSTRUCTOR_JUDGMENT.derive(Cns(it, program)) }
+                .forEach { tf ->
+                    clazz.meths.forEach { m ->
+                        ensure(tf == METHOD_JUDGEMENT.derive(Meth.Left(tf, m, program, clazz)))
+                    }
+                }
         }
         conclusion {
             left { !clazz.isLinear && !extends }
