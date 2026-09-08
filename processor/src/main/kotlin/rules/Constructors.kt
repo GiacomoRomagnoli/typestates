@@ -62,8 +62,11 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 ensure(term(bodyR.Ts))
                 bodyR.Tf
             }
+            side {
+                constructor.owner.superclass?.qualifiedName == "java.lang.Object"
+            }
             conclusion {
-                left { constructor.owner.superclass?.qualifiedName == "java.lang.Object" }
+                left { true }
                 right { it }
             }
         }
@@ -98,11 +101,13 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 ensure(term(stmtsJdg.Ts))
                 stmtsJdg.Tf
             }
+            side {
+                constructor.owner.superclass != null &&
+                        constructor.owner.superclass!!.qualifiedName != "java.lang.Object"
+            }
             conclusion {
                 left {
-                    constructor.owner.superclass != null &&
-                        constructor.owner.superclass!!.qualifiedName != "java.lang.Object" &&
-                            (constructor.body?.leaf as? BlockTree)?.statements?.firstOrNull()?.isSuperCall() == true
+                    (constructor.body?.leaf as? BlockTree)?.statements?.firstOrNull()?.isSuperCall() == true
                 }
                 right { it }
             }
@@ -142,14 +147,16 @@ val CONSTRUCTOR_JUDGMENT: Judgement<Cns, TypeEnv> =
                 ensure(term(stmtsJdg.Ts))
                 stmtsJdg.Tf
             }
+            side {
+                constructor.owner.superclass != null &&
+                        constructor.owner.superclass!!.qualifiedName != "java.lang.Object"
+            }
             conclusion {
                 left {
-                    constructor.owner.superclass != null &&
-                            constructor.owner.superclass!!.qualifiedName != "java.lang.Object" &&
-                            (constructor.body?.leaf as? BlockTree)
-                                ?.statements
-                                ?.firstOrNull()
-                                ?.isSuperCall() != true
+                    (constructor.body?.leaf as? BlockTree)
+                        ?.statements
+                        ?.firstOrNull()
+                        ?.isSuperCall() != true
                 }
                 right { it }
             }
