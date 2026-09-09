@@ -56,8 +56,9 @@ val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
             ensure(Ts[id] == null)
             program.classByPath(jt)!!
         }
+        side { program.classByPath(jt) != null }
         conclusion {
-            left { !f && program.classByPath(jt) != null }
+            left { !f }
             right { VarDecl.Right(Tf, Ts + (Id(id) to tt(it, Und)), Tbf, Tbs + (Id(id) to BottomTC), Tret) }
         }
     }
@@ -75,8 +76,9 @@ val VARIABLE_DECLARATION_JUDGEMENT = judgement<VarDecl.Left, VarDecl.Right> {
                 else -> program.enumByTypePath(jt)?.let { EnumType(it, true) } ?: fail()
             }
         }
+        side { program.classByPath(jt) == null }
         conclusion {
-            left { !f && program.classByPath(jt) == null }
+            left { !f }
             right { VarDecl.Right(Tf, Ts + (Id(id) to it), Tbf, Tbs + (Id(id) to BottomTC), Tret) }
         }
     }
